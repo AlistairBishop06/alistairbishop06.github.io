@@ -1,7 +1,6 @@
 # The Archive — 3D Portfolio Library
 
-A first-person browser-based 3D library where each book on the shelves represents a GitHub repository from **AlistairBishop06**.
-
+A first-person browser-based 3D library where each book on the shelves represents a GitHub repository from my profile.
 ## Running Locally
 
 You need a simple HTTP server (browsers block `fetch` on `file://` URLs).
@@ -18,8 +17,8 @@ python3 -m http.server 8080
 npx serve .
 ```
 
-### Option 3 — VS Code Live Server
-Right-click `index.html` → **Open with Live Server**
+### Option 3 — Github Pages
+Simply visit https://alistairbishop06.github.io/
 
 ---
 
