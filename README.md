@@ -18,8 +18,8 @@ python3 -m http.server 8080
 npx serve .
 ```
 
-### Option 3 — VS Code Live Server
-Right-click `index.html` → **Open with Live Server**
+### Option 3 — Github Pages
+Simply visit https://alistairbishop06.github.io/
 
 ---
 
