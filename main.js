@@ -473,8 +473,16 @@ function createBook(repo, slotIndex) {
   mesh.castShadow = true;
   mesh.receiveShadow = true;
 
-  // Store refs to coloured mats so we can toggle emissive glow on hover
-  mesh.userData.glowMats = [solidMat, spineMat];
+  // Outline mesh: slightly scaled up, only renders back faces → white shell
+  const outlineMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    side: THREE.BackSide,
+  });
+  const outlineMesh = new THREE.Mesh(geo, outlineMat);
+  outlineMesh.scale.set(1.12, 1.06, 1.08);
+  outlineMesh.visible = false;
+  mesh.add(outlineMesh);
+  mesh.userData.outlineMesh = outlineMesh;
 
   // Position at slot
   mesh.position.copy(slot.position);
@@ -487,6 +495,7 @@ function createBook(repo, slotIndex) {
     bookHeight: bH,
     bookWidth: bW,
     isBook: true,
+    outlineMesh,   // preserve the reference
   };
 
   scene.add(mesh);
@@ -577,19 +586,13 @@ function getBookMeshes() {
   return books.filter(b => !b.isHeld).map(b => b.mesh);
 }
 
-// Track which book is currently glowing so we can clear it
+// Track which book has its outline showing so we can hide it
 let glowedBook = null;
 
 function setBookGlow(bookData, on) {
   if (!bookData) return;
-  const mats = bookData.mesh.userData.glowMats;
-  if (!mats) return;
-  const intensity = on ? 0.35 : 0;
-  const col = on ? new THREE.Color(0xfff0c0) : new THREE.Color(0x000000);
-  mats.forEach(m => {
-    m.emissive = col;
-    m.emissiveIntensity = intensity;
-  });
+  const outline = bookData.mesh.userData.outlineMesh;
+  if (outline) outline.visible = on;
 }
 
 function formatLastUpdated(dateStr) {
