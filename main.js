@@ -547,12 +547,17 @@ function setupControls() {
   document.addEventListener('keydown', e => {
     if (e.code === 'KeyE') handleCheckout();
     if (e.code === 'KeyQ') returnHeldBook();
-    if (e.code === 'Escape' && readmeOpen) closeReadme();
+    if (e.code === 'Escape' && bookOpen) closeBook();
+    if (e.code === 'ArrowRight' && bookOpen) flipPage(1);
+    if (e.code === 'ArrowLeft'  && bookOpen) flipPage(-1);
+    // Also allow D/A for page flipping when book is open
+    if (e.code === 'KeyD' && bookOpen) { flipPage(1);  e.stopPropagation(); }
+    if (e.code === 'KeyA' && bookOpen) { flipPage(-1); e.stopPropagation(); }
   });
 
-  // Click backdrop to close readme
+  // Click backdrop to close readme (no longer used but harmless)
   readmeBackdrop.addEventListener('click', () => {
-    if (readmeOpen) closeReadme();
+    if (bookOpen) closeBook();
   });
 }
 
@@ -564,12 +569,6 @@ const raycaster = new THREE.Raycaster();
 const screenCenter = new THREE.Vector2(0, 0);
 let heldBook = null;
 let lookedAtBook = null;
-let readmeOpen = false;
-
-// Smooth held book target
-const heldTarget = new THREE.Object3D();
-camera.add(heldTarget);
-heldTarget.position.set(0.35, -0.28, -0.55);
 
 function getBookMeshes() {
   return books.filter(b => !b.isHeld).map(b => b.mesh);
@@ -679,196 +678,429 @@ function updateRaycast() {
 
 function handleClick() {
   if (!lookedAtBook || heldBook) return;
-
   const bookData = lookedAtBook;
 
-  // Retract tilt and stop tracking before removing from scene
+  // Stop tilt, restore shelf position cleanly
   tiltingBooks.delete(bookData);
   bookData.mesh.position.copy(bookData.originalPosition);
-  hoveredBook = null;
-
-  bookData.isHeld = true;
-  heldBook = bookData;
-
-  heldNameEl.textContent = bookData.repo.name;
-  heldInfoEl.classList.add('visible');
+  hoveredBook  = null;
+  lookedAtBook = null;
   bookInfoEl.classList.remove('visible');
 
-  // Attach book mesh to camera
-  scene.remove(bookData.mesh);
-  camera.add(bookData.mesh);
-  bookData.mesh.position.copy(heldTarget.position);
-  bookData.mesh.rotation.set(0.1, -0.3, 0.05);
+  bookData.isHeld      = true;
+  bookData.pickupPhase = 'lifting';
+  bookData.pickupT     = 0;
+
+  // Snapshot world position at start of lift
+  bookData.pickupStartPos  = bookData.mesh.position.clone();
+  bookData.pickupStartQuat = bookData.mesh.quaternion.clone();
+
+  heldBook = bookData;
+  heldInfoEl.classList.add('visible');
+  heldNameEl.textContent = bookData.repo.name;
 }
 
-function handleCheckout() {
-  if (!heldBook) return;
+// ─────────────────────────────────────────────
+// HELD BOOK ANIMATION
+// ─────────────────────────────────────────────
 
-  // If readme is open, E closes it
-  if (readmeOpen) {
-    closeReadme();
+let heldBookTime = 0;
+
+// Where the book rests in camera-local space once held
+const HELD_POS = new THREE.Vector3(0.3, -0.26, -0.5);
+const HELD_ROT = new THREE.Euler(0.05, -0.25, 0.03);
+
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+function updateHeldBook(dt) {
+  if (!heldBook) return;
+  heldBookTime += dt;
+
+  const book = heldBook;
+  const mesh = book.mesh;
+
+  // ── Phase: lifting from shelf into camera space ──────────────
+  if (book.pickupPhase === 'lifting') {
+    book.pickupT = Math.min(1, book.pickupT + dt / 0.55);
+    const t = easeOutCubic(book.pickupT);
+
+    // Target = HELD_POS expressed in world space
+    const camWorldPos  = new THREE.Vector3();
+    const camWorldQuat = new THREE.Quaternion();
+    camera.getWorldPosition(camWorldPos);
+    camera.getWorldQuaternion(camWorldQuat);
+
+    const targetPos  = HELD_POS.clone().applyQuaternion(camWorldQuat).add(camWorldPos);
+    const targetQuat = new THREE.Quaternion().setFromEuler(HELD_ROT).premultiply(camWorldQuat);
+
+    mesh.position.copy(book.pickupStartPos.clone().lerp(targetPos, t));
+    mesh.quaternion.copy(book.pickupStartQuat.clone().slerp(targetQuat, t));
+
+    if (book.pickupT >= 1) {
+      // Reparent to camera — now tracks camera movement for free
+      scene.remove(mesh);
+      camera.add(mesh);
+      mesh.position.copy(HELD_POS);
+      mesh.rotation.copy(HELD_ROT);
+      book.pickupPhase = 'held';
+      heldBookTime = 0;
+    }
     return;
   }
 
-  const dist = yawObj.position.distanceTo(DESK_POS);
-
-  if (dist <= DESK_INTERACT_DISTANCE) {
-    // At desk → open repo in new tab and return book
-    window.open(heldBook.repo.html_url, '_blank');
-    returnHeldBook();
-  } else {
-    // Not at desk → open README viewer
-    openReadme(heldBook);
+  // ── Phase: idle bob in hand ───────────────────────────────────
+  if (book.pickupPhase === 'held' && !bookOpen) {
+    const bobY = Math.sin(heldBookTime * 1.8) * 0.007;
+    const bobR = Math.sin(heldBookTime * 1.2) * 0.012;
+    mesh.position.set(HELD_POS.x, HELD_POS.y + bobY, HELD_POS.z);
+    mesh.rotation.set(HELD_ROT.x + bobR, HELD_ROT.y, HELD_ROT.z + bobR * 0.4);
   }
 }
 
-function returnHeldBook() {
-  if (!heldBook) return;
-  camera.remove(heldBook.mesh);
-  scene.add(heldBook.mesh);
-  heldBook.mesh.position.copy(heldBook.originalPosition);
-  heldBook.mesh.rotation.copy(heldBook.originalRotation);
-  heldBook.isHeld = false;
-  heldBook = null;
-  heldInfoEl.classList.remove('visible');
-  deskPromptEl.classList.remove('visible');
-}
-
 // ─────────────────────────────────────────────
-// README VIEWER
+// 3D OPEN BOOK SYSTEM
 // ─────────────────────────────────────────────
 
-// Very small Markdown → HTML renderer (no deps)
-function simpleMarkdown(md) {
-  if (!md) return '<p class="readme-empty">No README found.</p>';
+let bookOpen      = false;
+let openBookData  = null;
+let pageGroup     = null;   // THREE.Group parented to camera, holds open pages
+let currentPage   = 0;      // index into pageChunks (increments by 2 per flip)
+let pageChunks    = [];      // array of plain-text strings, one per page
 
-  let html = md
-    // Escape HTML entities first
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+// Page flip animation state
+let flipState     = null;   // null | { dir: +1/-1, t: 0, fromPage: n }
+const FLIP_SPEED  = 3.5;
 
-    // Fenced code blocks
-    .replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
-      `<pre><code class="language-${lang}">${code.trim()}</code></pre>`)
+// Book open animation
+let openT = 0;
+let openAnimating = false;
 
-    // Inline code
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
+const PAGE_W = 0.38;
+const PAGE_H = 0.52;
+const PAGE_GAP = 0.005;
 
-    // Images before links (order matters)
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2">')
+// Render one page of text onto a canvas texture
+function makePageTexture(text, pageNum, totalPages) {
+  const W = 512, H = 700;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
 
-    // Links
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+  // Aged paper background
+  ctx.fillStyle = '#f2e8d0';
+  ctx.fillRect(0, 0, W, H);
 
-    // Headings
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm,  '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm,   '<h1>$1</h1>')
+  // Subtle inner shadow border
+  const border = ctx.createLinearGradient(0, 0, 30, 0);
+  border.addColorStop(0, 'rgba(0,0,0,0.08)');
+  border.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = border;
+  ctx.fillRect(0, 0, 30, H);
 
-    // Horizontal rule
-    .replace(/^---+$/gm, '<hr>')
+  // Faint horizontal rules
+  ctx.strokeStyle = 'rgba(150,120,80,0.12)';
+  ctx.lineWidth = 1;
+  for (let y = 80; y < H - 40; y += 26) {
+    ctx.beginPath(); ctx.moveTo(28, y); ctx.lineTo(W - 28, y); ctx.stroke();
+  }
 
-    // Bold & italic
-    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-    .replace(/\*\*(.+?)\*\*/g,     '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g,         '<em>$1</em>')
-    .replace(/__(.+?)__/g,         '<strong>$1</strong>')
-    .replace(/_(.+?)_/g,           '<em>$1</em>')
+  // Text
+  ctx.fillStyle = '#1a0e04';
+  ctx.font = '500 18px Georgia, serif';
 
-    // Blockquote
-    .replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>')
+  const lines = text.split('\n');
+  let y = 52;
+  const lineH = 26;
+  const marginL = 36, marginR = W - 36;
+  const maxW = marginR - marginL;
 
-    // Unordered lists (simple single-level)
-    .replace(/^[\*\-] (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>[\s\S]+?<\/li>)/g, '<ul>$1</ul>')
-    // Collapse adjacent ul tags
-    .replace(/<\/ul>\s*<ul>/g, '')
+  for (const rawLine of lines) {
+    if (y > H - 55) break;
 
-    // Ordered lists
-    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-
-    // Paragraphs — wrap blocks of text not already tagged
-    .split(/\n{2,}/)
-    .map(block => {
-      block = block.trim();
-      if (!block) return '';
-      if (/^<(h[1-6]|ul|ol|li|pre|blockquote|hr|img)/.test(block)) return block;
-      // Replace single newlines in paragraph with <br>
-      return '<p>' + block.replace(/\n/g, '<br>') + '</p>';
-    })
-    .join('\n');
-
-  return html;
-}
-
-async function fetchReadme(repo) {
-  // Try default branch readme via GitHub contents API
-  try {
-    const res = await fetch(
-      `https://api.github.com/repos/${GITHUB_USER}/${repo.name}/readme`,
-      { headers: { Accept: 'application/vnd.github.raw' } }
-    );
-    if (res.ok) return await res.text();
-  } catch (_) {}
-  return null;
-}
-
-function openReadme(bookData) {
-  const { repo } = bookData;
-  const col = langColor(repo.language);
-  const r = (col >> 16) & 0xff;
-  const g = (col >> 8) & 0xff;
-  const b = col & 0xff;
-
-  // Darken the colour for the cover
-  const darken = v => Math.max(0, Math.round(v * 0.55));
-  readmeCover.style.background =
-    `linear-gradient(160deg, rgb(${darken(r)},${darken(g)},${darken(b)}), rgb(${darken(r*0.6)},${darken(g*0.6)},${darken(b*0.6)}))`;
-
-  readmeCoverTitle.textContent = repo.name.replace(/-/g, ' ').replace(/_/g, ' ');
-  readmeCoverLang.textContent  = repo.language || 'Unknown';
-  readmeCoverStars.innerHTML   = repo.stargazers_count > 0
-    ? `★ ${repo.stargazers_count}` : '';
-
-  readmeRepoName.textContent = repo.name;
-
-  // Show loading state
-  readmeContent.innerHTML = `<div class="readme-loading"><div class="readme-spinner"></div> Fetching README…</div>`;
-
-  readmeModal.classList.add('visible');
-  readmeOpen = true;
-
-  // Release pointer lock so cursor is free
-  document.exitPointerLock();
-
-  // Fetch and render
-  fetchReadme(repo).then(text => {
-    if (text) {
-      readmeContent.innerHTML = simpleMarkdown(text);
-    } else {
-      readmeContent.innerHTML = `
-        <p class="readme-empty">No README found for this repository.</p>
-        <p style="text-align:center;margin-top:8px;">
-          <a href="${repo.html_url}" target="_blank" rel="noopener" style="color:#7a3a10;font-size:0.85rem;">
-            View on GitHub →
-          </a>
-        </p>`;
+    // Heading styles
+    if (rawLine.startsWith('### ')) {
+      ctx.font = 'bold 17px Georgia, serif';
+      ctx.fillStyle = '#3a1a08';
+      ctx.fillText(rawLine.slice(4), marginL, y);
+      ctx.font = '500 18px Georgia, serif';
+      ctx.fillStyle = '#1a0e04';
+      y += lineH + 4;
+      continue;
     }
-  });
+    if (rawLine.startsWith('## ')) {
+      ctx.font = 'bold 20px Georgia, serif';
+      ctx.fillStyle = '#2a0e04';
+      ctx.fillText(rawLine.slice(3), marginL, y);
+      ctx.font = '500 18px Georgia, serif';
+      ctx.fillStyle = '#1a0e04';
+      y += lineH + 6;
+      continue;
+    }
+    if (rawLine.startsWith('# ')) {
+      ctx.font = 'bold 22px Georgia, serif';
+      ctx.fillStyle = '#1a0804';
+      ctx.fillText(rawLine.slice(2), marginL, y);
+      ctx.font = '500 18px Georgia, serif';
+      ctx.fillStyle = '#1a0e04';
+      y += lineH + 8;
+      // Underline
+      ctx.strokeStyle = 'rgba(80,40,10,0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(marginL, y - 6); ctx.lineTo(marginR, y - 6); ctx.stroke();
+      continue;
+    }
+
+    // Bullet
+    const displayLine = rawLine.startsWith('- ') || rawLine.startsWith('* ')
+      ? '• ' + rawLine.slice(2)
+      : rawLine;
+
+    // Word-wrap
+    const words = displayLine.split(' ');
+    let line = '';
+    for (const word of words) {
+      const test = line ? line + ' ' + word : word;
+      if (ctx.measureText(test).width > maxW && line) {
+        ctx.fillText(line, marginL, y);
+        y += lineH;
+        line = word;
+        if (y > H - 55) break;
+      } else {
+        line = test;
+      }
+    }
+    if (line && y <= H - 55) { ctx.fillText(line, marginL, y); y += lineH; }
+    if (!rawLine.trim()) y += 4; // blank line spacing
+  }
+
+  // Page number
+  ctx.font = 'italic 14px Georgia, serif';
+  ctx.fillStyle = 'rgba(100,70,40,0.5)';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${pageNum + 1} / ${totalPages}`, W / 2, H - 18);
+
+  return new THREE.CanvasTexture(canvas);
 }
 
-function closeReadme() {
-  readmeModal.classList.remove('visible');
-  readmeOpen = false;
-  // Re-lock pointer
+// Split plain-text markdown into page-sized chunks
+function splitIntoPages(md) {
+  if (!md) return ['No README found for this repository.'];
+
+  // Strip heavy markdown syntax to plain readable text
+  const plain = md
+    .replace(/```[\s\S]*?```/g, '[code block]')
+    .replace(/!\[.*?\]\(.*?\)/g, '[image]')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[*_]{1,3}([^*_]+)[*_]{1,3}/g, '$1')
+    .replace(/^#{1,6} /gm, '')
+    .replace(/^\s*[-*]\s/gm, '- ')
+    .replace(/\r/g, '');
+
+  const lines    = plain.split('\n');
+  const chunks   = [];
+  let current    = [];
+  let lineCount  = 0;
+  const LINES_PER_PAGE = 22;
+
+  for (const line of lines) {
+    // Each blank line + content line = ~1 visual row
+    const weight = line.trim() === '' ? 0.4 : (line.length > 60 ? 2 : 1);
+    if (lineCount + weight > LINES_PER_PAGE && current.length) {
+      chunks.push(current.join('\n'));
+      current = [];
+      lineCount = 0;
+    }
+    current.push(line);
+    lineCount += weight;
+  }
+  if (current.length) chunks.push(current.join('\n'));
+  return chunks.length ? chunks : ['No content.'];
+}
+
+function buildOpenBook(bookData) {
+  if (pageGroup) {
+    camera.remove(pageGroup);
+    pageGroup = null;
+  }
+
+  pageGroup = new THREE.Group();
+  // Position open book in front of camera, centred
+  pageGroup.position.set(0, -0.08, -0.58);
+  pageGroup.rotation.set(0.18, 0, 0);
+  camera.add(pageGroup);
+
+  renderPageSpread(bookData);
+}
+
+function renderPageSpread(bookData) {
+  // Remove old page planes but keep group
+  while (pageGroup.children.length) pageGroup.remove(pageGroup.children[0]);
+
+  const chunks = pageChunks;
+  const leftIdx  = currentPage;
+  const rightIdx = currentPage + 1;
+
+  // Cover (book body) — flat open, two halves
+  const col = langColor(bookData.repo.language);
+  const coverMat = new THREE.MeshLambertMaterial({ color: col });
+  const pageMat  = new THREE.MeshLambertMaterial({ color: 0xe8d5b0 });
+
+  // Left cover half
+  const leftCover = new THREE.Mesh(new THREE.BoxGeometry(PAGE_W, PAGE_H, 0.018), coverMat);
+  leftCover.position.set(-PAGE_W / 2 - PAGE_GAP, 0, 0);
+  pageGroup.add(leftCover);
+
+  // Right cover half
+  const rightCover = new THREE.Mesh(new THREE.BoxGeometry(PAGE_W, PAGE_H, 0.018), coverMat);
+  rightCover.position.set(PAGE_W / 2 + PAGE_GAP, 0, 0);
+  pageGroup.add(rightCover);
+
+  // Spine strip
+  const spine = new THREE.Mesh(new THREE.BoxGeometry(PAGE_GAP * 2, PAGE_H, 0.02), coverMat);
+  pageGroup.add(spine);
+
+  // Left page
+  if (leftIdx < chunks.length) {
+    const tex  = makePageTexture(chunks[leftIdx], leftIdx, chunks.length);
+    const plane = new THREE.Mesh(
+      new THREE.PlaneGeometry(PAGE_W - 0.01, PAGE_H - 0.01),
+      new THREE.MeshLambertMaterial({ map: tex, side: THREE.FrontSide })
+    );
+    plane.position.set(-PAGE_W / 2 - PAGE_GAP, 0, 0.011);
+    pageGroup.add(plane);
+  } else {
+    // Blank page
+    const blank = new THREE.Mesh(
+      new THREE.PlaneGeometry(PAGE_W - 0.01, PAGE_H - 0.01),
+      new THREE.MeshLambertMaterial({ color: 0xf2e8d0 })
+    );
+    blank.position.set(-PAGE_W / 2 - PAGE_GAP, 0, 0.011);
+    pageGroup.add(blank);
+  }
+
+  // Right page
+  if (rightIdx < chunks.length) {
+    const tex  = makePageTexture(chunks[rightIdx], rightIdx, chunks.length);
+    const plane = new THREE.Mesh(
+      new THREE.PlaneGeometry(PAGE_W - 0.01, PAGE_H - 0.01),
+      new THREE.MeshLambertMaterial({ map: tex, side: THREE.FrontSide })
+    );
+    plane.position.set(PAGE_W / 2 + PAGE_GAP, 0, 0.011);
+    pageGroup.add(plane);
+  } else {
+    const blank = new THREE.Mesh(
+      new THREE.PlaneGeometry(PAGE_W - 0.01, PAGE_H - 0.01),
+      new THREE.MeshLambertMaterial({ color: 0xf2e8d0 })
+    );
+    blank.position.set(PAGE_W / 2 + PAGE_GAP, 0, 0.011);
+    pageGroup.add(blank);
+  }
+
+  // Page counter HUD
+  updatePageHUD();
+}
+
+function updatePageHUD() {
+  const el = document.getElementById('page-counter');
+  if (!el || !bookOpen) return;
+  const total = pageChunks.length;
+  const spread = Math.floor(currentPage / 2) + 1;
+  const totalSpreads = Math.ceil(total / 2);
+  el.textContent = `${spread} / ${totalSpreads}`;
+  el.style.opacity = '1';
+
+  // Arrow hints
+  document.getElementById('page-prev').style.opacity = currentPage > 0 ? '1' : '0.2';
+  document.getElementById('page-next').style.opacity = currentPage + 2 < total ? '1' : '0.2';
+}
+
+// Flip animation — we swap pages instantly at midpoint of the flip
+function flipPage(dir) {
+  if (flipState) return; // already flipping
+  const next = currentPage + dir * 2;
+  if (next < 0 || next >= pageChunks.length) return;
+  flipState = { dir, t: 0, fromPage: currentPage };
+}
+
+function updateFlip(dt) {
+  if (!flipState || !pageGroup) return;
+  flipState.t += dt * FLIP_SPEED;
+
+  // Tilt the whole page group slightly as a page-turn cue
+  const t = flipState.t;
+  const tilt = Math.sin(Math.PI * Math.min(t, 1)) * 0.06 * flipState.dir;
+  pageGroup.rotation.z = tilt;
+
+  if (t >= 0.5 && !flipState.swapped) {
+    // Swap content at midpoint
+    currentPage += flipState.dir * 2;
+    renderPageSpread(openBookData);
+    flipState.swapped = true;
+  }
+
+  if (t >= 1) {
+    pageGroup.rotation.z = 0;
+    flipState = null;
+  }
+}
+
+async function openBook(bookData) {
+  if (bookData.pickupPhase !== 'held') return;
+
+  openBookData = bookData;
+  bookOpen     = true;
+
+  // Fetch README and split into pages
+  pageChunks  = ['Loading…'];
+  currentPage = 0;
+
+  // Hide the spine book mesh
+  bookData.mesh.visible = false;
+
+  // Build the open book geometry immediately with loading state
+  buildOpenBook(bookData);
+  showPageHUD(true);
+
+  // Fetch in background
+  fetchReadme(bookData.repo).then(text => {
+    pageChunks  = splitIntoPages(text);
+    currentPage = 0;
+    renderPageSpread(bookData);
+  });
+
+  document.exitPointerLock();
+}
+
+function closeBook() {
+  if (!bookOpen) return;
+  bookOpen = false;
+
+  if (pageGroup) {
+    camera.remove(pageGroup);
+    pageGroup = null;
+  }
+  if (openBookData) {
+    openBookData.mesh.visible = true;
+  }
+  openBookData = null;
+  flipState    = null;
+  showPageHUD(false);
   renderer.domElement.requestPointerLock();
 }
 
+function showPageHUD(on) {
+  const el = document.getElementById('page-hud');
+  if (el) el.style.opacity = on ? '1' : '0';
+  if (!on) {
+    const counter = document.getElementById('page-counter');
+    if (counter) counter.style.opacity = '0';
+  }
+}
+
 function updateDeskProximity() {
-  if (readmeOpen) return;
+  if (bookOpen) return;
   const dist = yawObj.position.distanceTo(DESK_POS);
-  if (dist < DESK_INTERACT_DISTANCE && heldBook) {
+  if (dist < DESK_INTERACT_DISTANCE && heldBook && heldBook.pickupPhase === 'held') {
     deskPromptEl.classList.add('visible');
   } else {
     deskPromptEl.classList.remove('visible');
@@ -883,7 +1115,7 @@ const moveDir = new THREE.Vector3();
 const clock   = new THREE.Clock();
 
 function updateMovement(dt) {
-  if (readmeOpen) return; // freeze player while reading
+  if (bookOpen) return; // freeze player while reading
   moveDir.set(0, 0, 0);
 
   if (keys['KeyW']) moveDir.z -= 1;
@@ -907,28 +1139,6 @@ function updateMovement(dt) {
   next.y = PLAYER_HEIGHT;
 
   yawObj.position.copy(next);
-}
-
-// ─────────────────────────────────────────────
-// HELD BOOK ANIMATION
-// ─────────────────────────────────────────────
-
-let heldBookTime = 0;
-
-function updateHeldBook(dt) {
-  if (!heldBook) return;
-  heldBookTime += dt;
-
-  // Gentle bob
-  const bobY = Math.sin(heldBookTime * 1.8) * 0.008;
-  const bobR = Math.sin(heldBookTime * 1.2) * 0.015;
-
-  heldBook.mesh.position.set(
-    heldTarget.position.x,
-    heldTarget.position.y + bobY,
-    heldTarget.position.z
-  );
-  heldBook.mesh.rotation.set(0.1 + bobR, -0.3, 0.05 + bobR * 0.5);
 }
 
 // ─────────────────────────────────────────────
@@ -1008,6 +1218,68 @@ function buildProps() {
 }
 
 // ─────────────────────────────────────────────
+// README FETCH
+// ─────────────────────────────────────────────
+
+async function fetchReadme(repo) {
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_USER}/${repo.name}/readme`,
+      { headers: { Accept: 'application/vnd.github.raw' } }
+    );
+    if (res.ok) return await res.text();
+  } catch (_) {}
+  return null;
+}
+
+// ─────────────────────────────────────────────
+// CHECKOUT / RETURN
+// ─────────────────────────────────────────────
+
+function handleCheckout() {
+  if (!heldBook) return;
+
+  // If book is open, E closes it
+  if (bookOpen) { closeBook(); return; }
+
+  // Pickup must be complete before any action
+  if (heldBook.pickupPhase !== 'held') return;
+
+  const dist = yawObj.position.distanceTo(DESK_POS);
+  if (dist <= DESK_INTERACT_DISTANCE) {
+    window.open(heldBook.repo.html_url, '_blank');
+    returnHeldBook();
+  } else {
+    openBook(heldBook);
+  }
+}
+
+function returnHeldBook() {
+  if (!heldBook) return;
+  if (bookOpen) closeBook();
+
+  const mesh = heldBook.mesh;
+
+  if (heldBook.pickupPhase === 'held') {
+    camera.remove(mesh);
+    scene.add(mesh);
+  }
+
+  mesh.visible = true;
+  // Restore to exact shelf position (originalPosition already includes the y offset)
+  mesh.position.copy(heldBook.originalPosition);
+  mesh.rotation.copy(heldBook.originalRotation);
+
+  heldBook.isHeld      = false;
+  heldBook.pickupPhase = null;
+  heldBook    = null;
+  heldBookTime = 0;
+
+  heldInfoEl.classList.remove('visible');
+  deskPromptEl.classList.remove('visible');
+}
+
+// ─────────────────────────────────────────────
 // FETCH REPOS & BUILD BOOKS
 // ─────────────────────────────────────────────
 
@@ -1061,9 +1333,10 @@ function animate() {
   updateMovement(dt);
   updateHeldBook(dt);
   updateBookTilts(dt);
+  updateFlip(dt);
 
-  // Raycast every other frame for performance
-  if (frameCount % 2 === 0) updateRaycast();
+  // Raycast every other frame — skip when book is open
+  if (frameCount % 2 === 0 && !bookOpen) updateRaycast();
   updateDeskProximity();
 
   // Candle flicker

@@ -549,8 +549,9 @@
   <div class="instructions">
     <div class="instruction-item"><span class="key">W A S D</span><span>Move</span></div>
     <div class="instruction-item"><span class="key">Mouse</span><span>Look around</span></div>
-    <div class="instruction-item"><span class="key">Click</span><span>Pick up glowing book</span></div>
-    <div class="instruction-item"><span class="key">E</span><span>Read held book</span></div>
+    <div class="instruction-item"><span class="key">Click</span><span>Pick up book</span></div>
+    <div class="instruction-item"><span class="key">E</span><span>Open / close book</span></div>
+    <div class="instruction-item"><span class="key">← →</span><span>Turn pages</span></div>
     <div class="instruction-item"><span class="key">E</span><span>Check out at desk</span></div>
     <div class="instruction-item"><span class="key">Q</span><span>Shelve book back</span></div>
     <div class="instruction-item"><span class="key">ESC</span><span>Release mouse</span></div>
@@ -583,25 +584,41 @@
   <button class="enter-btn" id="enter-btn">Enter the Library</button>
 </div>
 
-<!-- README Modal -->
-<div id="readme-modal">
-  <div class="readme-backdrop" id="readme-backdrop"></div>
-  <div class="readme-book">
-    <div class="readme-cover" id="readme-cover">
-      <div class="readme-cover-title" id="readme-cover-title"></div>
-      <div class="readme-cover-lang" id="readme-cover-lang"></div>
-      <div class="readme-cover-stars" id="readme-cover-stars"></div>
-    </div>
-    <div class="readme-pages">
-      <div class="readme-pages-header">
-        <span class="readme-repo-name" id="readme-repo-name"></span>
-        <span class="readme-close-hint"><span class="key">E</span> to close</span>
-      </div>
-      <div class="readme-scroll">
-        <div class="readme-content" id="readme-content"></div>
-      </div>
-    </div>
-  </div>
+<!-- Page HUD (shown when a book is open in 3D) -->
+<!-- Hidden stubs for legacy DOM refs -->
+<div id="readme-modal" style="display:none">
+  <div id="readme-backdrop"></div>
+  <div id="readme-cover"></div>
+  <div id="readme-cover-title"></div>
+  <div id="readme-cover-lang"></div>
+  <div id="readme-cover-stars"></div>
+  <div id="readme-repo-name"></div>
+  <div id="readme-content"></div>
+</div>
+
+<div id="page-hud" style=" style="
+  position:fixed; bottom:0; left:0; right:0;
+  display:flex; align-items:center; justify-content:center;
+  gap:28px; padding:20px;
+  pointer-events:none;
+  opacity:0; transition:opacity 0.3s ease;
+  z-index:20;
+">
+  <span id="page-prev" style="
+    font-family:'Georgia',serif; font-size:1.1rem;
+    color:#e8d5a3; letter-spacing:0.1em;
+    opacity:0.2; transition:opacity 0.2s;
+  ">← prev</span>
+  <span id="page-counter" style="
+    font-family:'Georgia',serif; font-size:0.75rem;
+    letter-spacing:0.25em; text-transform:uppercase;
+    color:#a08050; opacity:0; transition:opacity 0.3s;
+  "></span>
+  <span id="page-next" style="
+    font-family:'Georgia',serif; font-size:1.1rem;
+    color:#e8d5a3; letter-spacing:0.1em;
+    opacity:0.2; transition:opacity 0.2s;
+  ">next →</span>
 </div>
 
 <div id="canvas-container"></div>
@@ -618,7 +635,7 @@
   <div id="held-info">
     <p class="held-label">Holding</p>
     <p class="held-name" id="held-name"></p>
-    <p class="held-action" id="held-action-text">Press <span class="key-inline">E</span> to read &nbsp;·&nbsp; walk to <strong>desk</strong> + <span class="key-inline">E</span> to check out &nbsp;·&nbsp; <span class="key-inline">Q</span> to shelve</p>
+    <p class="held-action" id="held-action-text">Press <span class="key-inline">E</span> to open &nbsp;·&nbsp; desk + <span class="key-inline">E</span> to check out &nbsp;·&nbsp; <span class="key-inline">Q</span> to shelve</p>
   </div>
 </div>
 
