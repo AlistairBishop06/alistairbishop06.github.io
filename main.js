@@ -473,17 +473,6 @@ function createBook(repo, slotIndex) {
   mesh.castShadow = true;
   mesh.receiveShadow = true;
 
-  // Outline mesh: slightly scaled up, only renders back faces → white shell
-  const outlineMat = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    side: THREE.BackSide,
-  });
-  const outlineMesh = new THREE.Mesh(geo, outlineMat);
-  outlineMesh.scale.set(1.12, 1.06, 1.08);
-  outlineMesh.visible = false;
-  mesh.add(outlineMesh);
-  mesh.userData.outlineMesh = outlineMesh;
-
   // Position at slot
   mesh.position.copy(slot.position);
   mesh.position.y += bH / 2;
@@ -495,7 +484,7 @@ function createBook(repo, slotIndex) {
     bookHeight: bH,
     bookWidth: bW,
     isBook: true,
-    outlineMesh,   // preserve the reference
+    shelfRotY: slot.rotY ?? 0,
   };
 
   scene.add(mesh);
@@ -586,13 +575,56 @@ function getBookMeshes() {
   return books.filter(b => !b.isHeld).map(b => b.mesh);
 }
 
-// Track which book has its outline showing so we can hide it
-let glowedBook = null;
+// ─────────────────────────────────────────────
+// BOOK TILT (hover effect)
+// ─────────────────────────────────────────────
 
-function setBookGlow(bookData, on) {
-  if (!bookData) return;
-  const outline = bookData.mesh.userData.outlineMesh;
-  if (outline) outline.visible = on;
+// Each entry: { bookData, tilt } where tilt goes 0→1 (out) or 1→0 (back)
+// We track ALL books that are mid-animation so they ease back smoothly.
+const tiltingBooks = new Map(); // bookData → current tilt amount 0..1
+
+const TILT_AMOUNT  = 0.18; // metres the book slides out toward the player
+const TILT_SPEED   = 8;    // how fast it animates (units/sec, lerp-style)
+
+function updateBookTilts(dt) {
+  for (const [bookData, tilt] of tiltingBooks) {
+    const isTarget = bookData === lookedAtBook && !bookData.isHeld;
+    const target   = isTarget ? 1 : 0;
+    const next     = THREE.MathUtils.lerp(tilt, target, 1 - Math.exp(-TILT_SPEED * dt));
+
+    // Work out the direction the book's spine faces (outward from shelf)
+    // Each shelf was built so +Z in local space faces the player side.
+    // The book's rotation.y encodes the shelf's rotY, so we push along that.
+    const angle = bookData.mesh.userData.shelfRotY ?? 0;
+    const outDir = new THREE.Vector3(Math.sin(angle), 0, Math.cos(angle));
+
+    const base = bookData.originalPosition.clone();
+    bookData.mesh.position.copy(base).addScaledVector(outDir, next * TILT_AMOUNT);
+
+    if (Math.abs(next - target) < 0.001) {
+      // Snap to final value and stop tracking if fully settled
+      bookData.mesh.position.copy(base).addScaledVector(outDir, target * TILT_AMOUNT);
+      if (target === 0) {
+        tiltingBooks.delete(bookData);
+      } else {
+        tiltingBooks.set(bookData, target);
+      }
+    } else {
+      tiltingBooks.set(bookData, next);
+    }
+  }
+}
+
+let hoveredBook = null;
+
+function setBookHover(bookData, on) {
+  if (on && !tiltingBooks.has(bookData)) {
+    tiltingBooks.set(bookData, 0); // start tilt-out from 0
+  }
+  if (!on && tiltingBooks.has(bookData)) {
+    // Keep in map so it animates back to 0
+    tiltingBooks.set(bookData, tiltingBooks.get(bookData));
+  }
 }
 
 function formatLastUpdated(dateStr) {
@@ -616,21 +648,18 @@ function updateRaycast() {
     const hit = hits[0].object;
     const bookData = books.find(b => b.mesh === hit);
     if (bookData) {
-      // Clear glow from previous book if it changed
-      if (glowedBook && glowedBook !== bookData) {
-        setBookGlow(glowedBook, false);
+      if (hoveredBook && hoveredBook !== bookData) {
+        setBookHover(hoveredBook, false);
       }
-      // Apply glow to newly looked-at book
-      if (glowedBook !== bookData) {
-        setBookGlow(bookData, true);
-        glowedBook = bookData;
+      if (hoveredBook !== bookData) {
+        setBookHover(bookData, true);
+        hoveredBook = bookData;
       }
 
       lookedAtBook = bookData;
       bookInfoName.textContent = bookData.repo.name;
       bookInfoDesc.textContent = bookData.repo.description || 'No description provided.';
 
-      // Last updated (feature 7) — uses pushed_at from GitHub API
       const updated = formatLastUpdated(bookData.repo.pushed_at || bookData.repo.updated_at);
       document.getElementById('book-info-updated').textContent = updated;
 
@@ -639,10 +668,10 @@ function updateRaycast() {
     }
   }
 
-  // Nothing hit — clear glow and HUD
-  if (glowedBook) {
-    setBookGlow(glowedBook, false);
-    glowedBook = null;
+  // Nothing hit — retract any hoveredBook and clear HUD
+  if (hoveredBook) {
+    setBookHover(hoveredBook, false);
+    hoveredBook = null;
   }
   lookedAtBook = null;
   bookInfoEl.classList.remove('visible');
@@ -653,9 +682,10 @@ function handleClick() {
 
   const bookData = lookedAtBook;
 
-  // Clear hover glow before picking up
-  setBookGlow(bookData, false);
-  if (glowedBook === bookData) glowedBook = null;
+  // Retract tilt and stop tracking before removing from scene
+  tiltingBooks.delete(bookData);
+  bookData.mesh.position.copy(bookData.originalPosition);
+  hoveredBook = null;
 
   bookData.isHeld = true;
   heldBook = bookData;
@@ -1030,6 +1060,7 @@ function animate() {
 
   updateMovement(dt);
   updateHeldBook(dt);
+  updateBookTilts(dt);
 
   // Raycast every other frame for performance
   if (frameCount % 2 === 0) updateRaycast();
