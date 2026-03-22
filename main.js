@@ -52,6 +52,14 @@ const bookInfoDesc   = document.getElementById('book-info-desc');
 const heldInfoEl     = document.getElementById('held-info');
 const heldNameEl     = document.getElementById('held-name');
 const deskPromptEl   = document.getElementById('desk-prompt');
+const readmeModal    = document.getElementById('readme-modal');
+const readmeCover    = document.getElementById('readme-cover');
+const readmeCoverTitle = document.getElementById('readme-cover-title');
+const readmeCoverLang  = document.getElementById('readme-cover-lang');
+const readmeCoverStars = document.getElementById('readme-cover-stars');
+const readmeRepoName   = document.getElementById('readme-repo-name');
+const readmeContent    = document.getElementById('readme-content');
+const readmeBackdrop   = document.getElementById('readme-backdrop');
 
 // ─────────────────────────────────────────────
 // THREE.JS SCENE SETUP
@@ -507,6 +515,12 @@ function setupControls() {
 
   document.addEventListener('keydown', e => {
     if (e.code === 'KeyE') handleCheckout();
+    if (e.code === 'Escape' && readmeOpen) closeReadme();
+  });
+
+  // Click backdrop to close readme
+  readmeBackdrop.addEventListener('click', () => {
+    if (readmeOpen) closeReadme();
   });
 }
 
@@ -518,6 +532,7 @@ const raycaster = new THREE.Raycaster();
 const screenCenter = new THREE.Vector2(0, 0);
 let heldBook = null;
 let lookedAtBook = null;
+let readmeOpen = false;
 
 // Smooth held book target
 const heldTarget = new THREE.Object3D();
@@ -569,24 +584,170 @@ function handleClick() {
 
 function handleCheckout() {
   if (!heldBook) return;
+
+  // If readme is open, E closes it
+  if (readmeOpen) {
+    closeReadme();
+    return;
+  }
+
   const dist = yawObj.position.distanceTo(DESK_POS);
-  if (dist > DESK_INTERACT_DISTANCE) return;
 
-  window.open(heldBook.repo.html_url, '_blank');
+  if (dist <= DESK_INTERACT_DISTANCE) {
+    // At desk → open repo in new tab and return book
+    window.open(heldBook.repo.html_url, '_blank');
+    returnHeldBook();
+  } else {
+    // Not at desk → open README viewer
+    openReadme(heldBook);
+  }
+}
 
-  // Return book to shelf
+function returnHeldBook() {
+  if (!heldBook) return;
   camera.remove(heldBook.mesh);
   scene.add(heldBook.mesh);
   heldBook.mesh.position.copy(heldBook.originalPosition);
   heldBook.mesh.rotation.copy(heldBook.originalRotation);
   heldBook.isHeld = false;
   heldBook = null;
-
   heldInfoEl.classList.remove('visible');
   deskPromptEl.classList.remove('visible');
 }
 
+// ─────────────────────────────────────────────
+// README VIEWER
+// ─────────────────────────────────────────────
+
+// Very small Markdown → HTML renderer (no deps)
+function simpleMarkdown(md) {
+  if (!md) return '<p class="readme-empty">No README found.</p>';
+
+  let html = md
+    // Escape HTML entities first
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+
+    // Fenced code blocks
+    .replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
+      `<pre><code class="language-${lang}">${code.trim()}</code></pre>`)
+
+    // Inline code
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+
+    // Images before links (order matters)
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2">')
+
+    // Links
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+
+    // Headings
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,  '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,   '<h1>$1</h1>')
+
+    // Horizontal rule
+    .replace(/^---+$/gm, '<hr>')
+
+    // Bold & italic
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g,     '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,         '<em>$1</em>')
+    .replace(/__(.+?)__/g,         '<strong>$1</strong>')
+    .replace(/_(.+?)_/g,           '<em>$1</em>')
+
+    // Blockquote
+    .replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>')
+
+    // Unordered lists (simple single-level)
+    .replace(/^[\*\-] (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>[\s\S]+?<\/li>)/g, '<ul>$1</ul>')
+    // Collapse adjacent ul tags
+    .replace(/<\/ul>\s*<ul>/g, '')
+
+    // Ordered lists
+    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+
+    // Paragraphs — wrap blocks of text not already tagged
+    .split(/\n{2,}/)
+    .map(block => {
+      block = block.trim();
+      if (!block) return '';
+      if (/^<(h[1-6]|ul|ol|li|pre|blockquote|hr|img)/.test(block)) return block;
+      // Replace single newlines in paragraph with <br>
+      return '<p>' + block.replace(/\n/g, '<br>') + '</p>';
+    })
+    .join('\n');
+
+  return html;
+}
+
+async function fetchReadme(repo) {
+  // Try default branch readme via GitHub contents API
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_USER}/${repo.name}/readme`,
+      { headers: { Accept: 'application/vnd.github.raw' } }
+    );
+    if (res.ok) return await res.text();
+  } catch (_) {}
+  return null;
+}
+
+function openReadme(bookData) {
+  const { repo } = bookData;
+  const col = langColor(repo.language);
+  const r = (col >> 16) & 0xff;
+  const g = (col >> 8) & 0xff;
+  const b = col & 0xff;
+
+  // Darken the colour for the cover
+  const darken = v => Math.max(0, Math.round(v * 0.55));
+  readmeCover.style.background =
+    `linear-gradient(160deg, rgb(${darken(r)},${darken(g)},${darken(b)}), rgb(${darken(r*0.6)},${darken(g*0.6)},${darken(b*0.6)}))`;
+
+  readmeCoverTitle.textContent = repo.name.replace(/-/g, ' ').replace(/_/g, ' ');
+  readmeCoverLang.textContent  = repo.language || 'Unknown';
+  readmeCoverStars.innerHTML   = repo.stargazers_count > 0
+    ? `★ ${repo.stargazers_count}` : '';
+
+  readmeRepoName.textContent = repo.name;
+
+  // Show loading state
+  readmeContent.innerHTML = `<div class="readme-loading"><div class="readme-spinner"></div> Fetching README…</div>`;
+
+  readmeModal.classList.add('visible');
+  readmeOpen = true;
+
+  // Release pointer lock so cursor is free
+  document.exitPointerLock();
+
+  // Fetch and render
+  fetchReadme(repo).then(text => {
+    if (text) {
+      readmeContent.innerHTML = simpleMarkdown(text);
+    } else {
+      readmeContent.innerHTML = `
+        <p class="readme-empty">No README found for this repository.</p>
+        <p style="text-align:center;margin-top:8px;">
+          <a href="${repo.html_url}" target="_blank" rel="noopener" style="color:#7a3a10;font-size:0.85rem;">
+            View on GitHub →
+          </a>
+        </p>`;
+    }
+  });
+}
+
+function closeReadme() {
+  readmeModal.classList.remove('visible');
+  readmeOpen = false;
+  // Re-lock pointer
+  renderer.domElement.requestPointerLock();
+}
+
 function updateDeskProximity() {
+  if (readmeOpen) return;
   const dist = yawObj.position.distanceTo(DESK_POS);
   if (dist < DESK_INTERACT_DISTANCE && heldBook) {
     deskPromptEl.classList.add('visible');
@@ -603,6 +764,7 @@ const moveDir = new THREE.Vector3();
 const clock   = new THREE.Clock();
 
 function updateMovement(dt) {
+  if (readmeOpen) return; // freeze player while reading
   moveDir.set(0, 0, 0);
 
   if (keys['KeyW']) moveDir.z -= 1;

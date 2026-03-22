@@ -61,6 +61,8 @@
       justify-content: center;
       z-index: 100;
       transition: opacity 0.6s ease;
+      overflow-y: auto;
+      padding: 40px 20px;
     }
     #overlay.hidden {
       opacity: 0;
@@ -136,6 +138,41 @@
       background: rgba(232, 213, 163, 0.08);
       border-color: rgba(232, 213, 163, 0.7);
       box-shadow: 0 0 30px rgba(200, 150, 60, 0.15);
+    }
+
+    /* Colour legend */
+    .legend-section {
+      margin-bottom: 2.8em;
+      text-align: center;
+    }
+    .legend-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: #6a5030;
+      margin-bottom: 1em;
+    }
+    .legend-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      max-width: 560px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.75rem;
+      color: #c8a870;
+      letter-spacing: 0.04em;
+    }
+    .legend-swatch {
+      width: 10px;
+      height: 28px;
+      border-radius: 2px;
+      flex-shrink: 0;
+      opacity: 0.9;
     }
 
     /* Loading state */
@@ -254,6 +291,209 @@
       font-family: monospace;
     }
 
+    /* ── README Modal ─────────────────────────────── */
+    #readme-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    #readme-modal.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .readme-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(5, 3, 1, 0.82);
+      backdrop-filter: blur(6px);
+    }
+
+    .readme-book {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      width: min(860px, 92vw);
+      max-height: 82vh;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(232,213,163,0.1);
+      transform: translateY(24px) scale(0.97);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #readme-modal.visible .readme-book {
+      transform: translateY(0) scale(1);
+    }
+
+    /* Left "cover" panel */
+    .readme-cover {
+      width: 200px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 20px;
+      gap: 12px;
+    }
+
+    .readme-cover-title {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+      font-size: 1.1rem;
+      letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.9);
+      font-family: 'Georgia', serif;
+      word-break: break-word;
+      text-align: center;
+      max-height: 280px;
+      overflow: hidden;
+    }
+
+    .readme-cover-lang {
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+      margin-top: 16px;
+    }
+
+    .readme-cover-stars {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.6);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Right "pages" panel */
+    .readme-pages {
+      flex: 1;
+      background: #f5ead6;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .readme-pages-header {
+      padding: 20px 28px 14px;
+      border-bottom: 1px solid rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .readme-repo-name {
+      font-family: 'Georgia', serif;
+      font-size: 1.15rem;
+      color: #2a1a08;
+      letter-spacing: 0.03em;
+    }
+
+    .readme-close-hint {
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #8a7050;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .readme-close-hint .key {
+      background: rgba(0,0,0,0.08);
+      border-color: rgba(0,0,0,0.15);
+      color: #2a1a08;
+    }
+
+    .readme-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 28px 32px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0,0,0,0.15) transparent;
+    }
+    .readme-scroll::-webkit-scrollbar { width: 5px; }
+    .readme-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+
+    /* Rendered markdown inside the pages */
+    .readme-content {
+      font-family: 'Georgia', serif;
+      font-size: 0.88rem;
+      line-height: 1.75;
+      color: #2a1a08;
+    }
+    .readme-content h1 { font-size: 1.4rem; margin: 0 0 12px; color: #1a0e04; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 8px; }
+    .readme-content h2 { font-size: 1.1rem; margin: 20px 0 8px; color: #1a0e04; }
+    .readme-content h3 { font-size: 0.95rem; margin: 16px 0 6px; color: #2a1a08; }
+    .readme-content p  { margin: 0 0 12px; }
+    .readme-content ul, .readme-content ol { margin: 0 0 12px 20px; }
+    .readme-content li { margin-bottom: 4px; }
+    .readme-content code {
+      background: rgba(0,0,0,0.07);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.82em;
+      color: #4a1a08;
+    }
+    .readme-content pre {
+      background: #2a1a08;
+      color: #e8d5a3;
+      padding: 14px 16px;
+      border-radius: 4px;
+      overflow-x: auto;
+      margin: 0 0 14px;
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+    .readme-content pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+    .readme-content blockquote {
+      border-left: 3px solid rgba(0,0,0,0.15);
+      margin: 0 0 12px;
+      padding: 4px 16px;
+      color: #6a4a28;
+      font-style: italic;
+    }
+    .readme-content a { color: #7a3a10; }
+    .readme-content img { max-width: 100%; border-radius: 4px; margin: 8px 0; }
+    .readme-content hr { border: none; border-top: 1px solid rgba(0,0,0,0.12); margin: 16px 0; }
+    .readme-content table { border-collapse: collapse; width: 100%; margin-bottom: 14px; font-size: 0.83rem; }
+    .readme-content th, .readme-content td { border: 1px solid rgba(0,0,0,0.12); padding: 6px 10px; }
+    .readme-content th { background: rgba(0,0,0,0.05); font-weight: bold; }
+
+    .readme-empty {
+      color: #8a7050;
+      font-style: italic;
+      text-align: center;
+      padding: 40px 0;
+    }
+
+    .readme-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: #8a7050;
+      font-style: italic;
+      padding: 40px 0;
+      font-size: 0.85rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .readme-spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(0,0,0,0.1);
+      border-top-color: #8a7050;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
     #desk-prompt {
       position: fixed;
       top: 40%;
@@ -305,11 +545,57 @@
     <div class="instruction-item"><span class="key">A</span><span>Strafe left</span></div>
     <div class="instruction-item"><span class="key">D</span><span>Strafe right</span></div>
     <div class="instruction-item"><span class="key">Click</span><span>Pick up book</span></div>
+    <div class="instruction-item"><span class="key">E</span><span>Read held book</span></div>
     <div class="instruction-item"><span class="key">E</span><span>Check out at desk</span></div>
     <div class="instruction-item"><span class="key">ESC</span><span>Release mouse</span></div>
-    <div class="instruction-item"><span class="key">Mouse</span><span>Look around</span></div>
   </div>
+
+  <div class="divider"></div>
+
+  <div class="legend-section">
+    <p class="legend-label">Book spine colours · by language</p>
+    <div class="legend-grid">
+      <div class="legend-item"><div class="legend-swatch" style="background:#c8a820"></div>JavaScript</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#4a7fc1"></div>TypeScript</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#4a8fc8"></div>Python</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#b85530"></div>Rust</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#5ab8c8"></div>Go</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#6a3bc8"></div>C#</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#8a4ab8"></div>C++</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#c85030"></div>HTML</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#2060b8"></div>CSS</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#508050"></div>Shell</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#b82030"></div>Ruby</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#c86040"></div>Swift</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#7050c8"></div>Kotlin</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#b87030"></div>Java</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#7070c8"></div>PHP</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#8a7060"></div>Other</div>
+    </div>
+  </div>
+
   <button class="enter-btn" id="enter-btn">Enter the Library</button>
+</div>
+
+<!-- README Modal -->
+<div id="readme-modal">
+  <div class="readme-backdrop" id="readme-backdrop"></div>
+  <div class="readme-book">
+    <div class="readme-cover" id="readme-cover">
+      <div class="readme-cover-title" id="readme-cover-title"></div>
+      <div class="readme-cover-lang" id="readme-cover-lang"></div>
+      <div class="readme-cover-stars" id="readme-cover-stars"></div>
+    </div>
+    <div class="readme-pages">
+      <div class="readme-pages-header">
+        <span class="readme-repo-name" id="readme-repo-name"></span>
+        <span class="readme-close-hint"><span class="key">E</span> to close</span>
+      </div>
+      <div class="readme-scroll">
+        <div class="readme-content" id="readme-content"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="canvas-container"></div>
@@ -325,7 +611,7 @@
   <div id="held-info">
     <p class="held-label">Holding</p>
     <p class="held-name" id="held-name"></p>
-    <p class="held-action">Walk to the <strong>checkout desk</strong> &amp; press <span class="key-inline">E</span></p>
+    <p class="held-action" id="held-action-text">Press <span class="key-inline">E</span> to read &nbsp;·&nbsp; walk to <strong>desk</strong> + <span class="key-inline">E</span> to check out</p>
   </div>
 </div>
 
