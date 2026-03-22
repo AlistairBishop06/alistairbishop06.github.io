@@ -1,7 +1,6 @@
 # The Archive — 3D Portfolio Library
 
-A first-person browser-based 3D library where each book on the shelves represents a GitHub repository from **AlistairBishop06**.
-
+A first-person browser-based 3D library where each book on the shelves represents a GitHub repository from my profile.
 ## Running Locally
 
 You need a simple HTTP server (browsers block `fetch` on `file://` URLs).
