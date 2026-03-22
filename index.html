@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alistair's Library — Portfolio</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0a0705;
+      overflow: hidden;
+      font-family: 'Georgia', serif;
+      color: #e8d5a3;
+    }
+
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* Crosshair */
+    #crosshair {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 10;
+    }
+    #crosshair::before,
+    #crosshair::after {
+      content: '';
+      position: absolute;
+      background: rgba(232, 213, 163, 0.7);
+    }
+    #crosshair::before {
+      width: 14px; height: 1px;
+      top: 0; left: -7px;
+    }
+    #crosshair::after {
+      width: 1px; height: 14px;
+      top: -7px; left: 0;
+    }
+
+    /* Overlay: instructions screen */
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(8, 5, 3, 0.96);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: opacity 0.6s ease;
+    }
+    #overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .overlay-title {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      color: #e8d5a3;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 0.3em;
+      text-shadow: 0 0 40px rgba(200, 150, 60, 0.5);
+    }
+    .overlay-subtitle {
+      font-size: 1rem;
+      color: #a08050;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 3em;
+    }
+
+    .instructions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.8em 2.5em;
+      margin-bottom: 3em;
+      max-width: 520px;
+    }
+    .instruction-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75em;
+      font-size: 0.9rem;
+      color: #c8a870;
+    }
+    .key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      height: 28px;
+      padding: 0 6px;
+      background: rgba(232, 213, 163, 0.08);
+      border: 1px solid rgba(232, 213, 163, 0.25);
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.8rem;
+      color: #e8d5a3;
+      flex-shrink: 0;
+    }
+
+    .divider {
+      width: 80px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #a08050, transparent);
+      margin-bottom: 2em;
+    }
+
+    .enter-btn {
+      padding: 14px 48px;
+      background: transparent;
+      border: 1px solid rgba(232, 213, 163, 0.4);
+      color: #e8d5a3;
+      font-family: 'Georgia', serif;
+      font-size: 1rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .enter-btn:hover {
+      background: rgba(232, 213, 163, 0.08);
+      border-color: rgba(232, 213, 163, 0.7);
+      box-shadow: 0 0 30px rgba(200, 150, 60, 0.15);
+    }
+
+    /* Loading state */
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: #0a0705;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      transition: opacity 0.8s ease;
+    }
+    #loading.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .loading-text {
+      font-size: 0.9rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #a08050;
+      margin-bottom: 2em;
+    }
+    .loading-bar-wrap {
+      width: 200px;
+      height: 1px;
+      background: rgba(232, 213, 163, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    .loading-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #a08050, #e8d5a3);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    /* HUD */
+    #hud {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      pointer-events: none;
+      z-index: 20;
+      padding: 24px 32px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    #book-info {
+      max-width: 380px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all 0.35s ease;
+    }
+    #book-info.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .book-info-name {
+      font-size: 1.05rem;
+      color: #e8d5a3;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+    .book-info-desc {
+      font-size: 0.78rem;
+      color: #8a7050;
+      line-height: 1.5;
+    }
+    .book-info-action {
+      margin-top: 8px;
+      font-size: 0.72rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #c8a870;
+    }
+
+    #held-info {
+      text-align: right;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all 0.35s ease;
+    }
+    #held-info.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .held-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #8a7050;
+      margin-bottom: 4px;
+    }
+    .held-name {
+      font-size: 1rem;
+      color: #e8d5a3;
+    }
+    .held-action {
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #c8a870;
+      margin-top: 4px;
+    }
+    .held-action .key-inline {
+      display: inline-block;
+      padding: 1px 5px;
+      border: 1px solid rgba(200, 168, 112, 0.4);
+      border-radius: 3px;
+      font-family: monospace;
+    }
+
+    #desk-prompt {
+      position: fixed;
+      top: 40%;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      pointer-events: none;
+      z-index: 20;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    #desk-prompt.visible {
+      opacity: 1;
+    }
+    .desk-prompt-text {
+      font-size: 0.8rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #e8d5a3;
+      background: rgba(10, 7, 5, 0.7);
+      padding: 10px 20px;
+      border: 1px solid rgba(232, 213, 163, 0.2);
+    }
+
+    /* Vignette */
+    #vignette {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at center, transparent 50%, rgba(5, 3, 1, 0.7) 100%);
+      pointer-events: none;
+      z-index: 5;
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading">
+  <p class="loading-text">Cataloguing the collection…</p>
+  <div class="loading-bar-wrap"><div class="loading-bar" id="loading-bar"></div></div>
+</div>
+
+<div id="overlay">
+  <h1 class="overlay-title">The Archive</h1>
+  <p class="overlay-subtitle">Alistair Bishop · Portfolio Library</p>
+  <div class="divider"></div>
+  <div class="instructions">
+    <div class="instruction-item"><span class="key">W</span><span>Walk forward</span></div>
+    <div class="instruction-item"><span class="key">S</span><span>Walk back</span></div>
+    <div class="instruction-item"><span class="key">A</span><span>Strafe left</span></div>
+    <div class="instruction-item"><span class="key">D</span><span>Strafe right</span></div>
+    <div class="instruction-item"><span class="key">Click</span><span>Pick up book</span></div>
+    <div class="instruction-item"><span class="key">E</span><span>Check out at desk</span></div>
+    <div class="instruction-item"><span class="key">ESC</span><span>Release mouse</span></div>
+    <div class="instruction-item"><span class="key">Mouse</span><span>Look around</span></div>
+  </div>
+  <button class="enter-btn" id="enter-btn">Enter the Library</button>
+</div>
+
+<div id="canvas-container"></div>
+<div id="vignette"></div>
+<div id="crosshair"></div>
+
+<div id="hud">
+  <div id="book-info">
+    <p class="book-info-name" id="book-info-name"></p>
+    <p class="book-info-desc" id="book-info-desc"></p>
+    <p class="book-info-action">Click to pick up</p>
+  </div>
+  <div id="held-info">
+    <p class="held-label">Holding</p>
+    <p class="held-name" id="held-name"></p>
+    <p class="held-action">Walk to the <strong>checkout desk</strong> &amp; press <span class="key-inline">E</span></p>
+  </div>
+</div>
+
+<div id="desk-prompt">
+  <p class="desk-prompt-text">Press <strong>E</strong> to open repository</p>
+</div>
+
+<!-- Three.js from CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
