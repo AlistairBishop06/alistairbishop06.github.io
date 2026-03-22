@@ -254,6 +254,13 @@
       text-transform: uppercase;
       color: #c8a870;
     }
+    .book-info-updated {
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      color: #6a5530;
+      margin-top: 3px;
+      font-style: italic;
+    }
 
     #held-info {
       text-align: right;
@@ -540,13 +547,12 @@
   <p class="overlay-subtitle">Alistair Bishop · Portfolio Library</p>
   <div class="divider"></div>
   <div class="instructions">
-    <div class="instruction-item"><span class="key">W</span><span>Walk forward</span></div>
-    <div class="instruction-item"><span class="key">S</span><span>Walk back</span></div>
-    <div class="instruction-item"><span class="key">A</span><span>Strafe left</span></div>
-    <div class="instruction-item"><span class="key">D</span><span>Strafe right</span></div>
-    <div class="instruction-item"><span class="key">Click</span><span>Pick up book</span></div>
+    <div class="instruction-item"><span class="key">W A S D</span><span>Move</span></div>
+    <div class="instruction-item"><span class="key">Mouse</span><span>Look around</span></div>
+    <div class="instruction-item"><span class="key">Click</span><span>Pick up glowing book</span></div>
     <div class="instruction-item"><span class="key">E</span><span>Read held book</span></div>
     <div class="instruction-item"><span class="key">E</span><span>Check out at desk</span></div>
+    <div class="instruction-item"><span class="key">Q</span><span>Shelve book back</span></div>
     <div class="instruction-item"><span class="key">ESC</span><span>Release mouse</span></div>
   </div>
 
@@ -606,12 +612,13 @@
   <div id="book-info">
     <p class="book-info-name" id="book-info-name"></p>
     <p class="book-info-desc" id="book-info-desc"></p>
+    <p class="book-info-updated" id="book-info-updated"></p>
     <p class="book-info-action">Click to pick up</p>
   </div>
   <div id="held-info">
     <p class="held-label">Holding</p>
     <p class="held-name" id="held-name"></p>
-    <p class="held-action" id="held-action-text">Press <span class="key-inline">E</span> to read &nbsp;·&nbsp; walk to <strong>desk</strong> + <span class="key-inline">E</span> to check out</p>
+    <p class="held-action" id="held-action-text">Press <span class="key-inline">E</span> to read &nbsp;·&nbsp; walk to <strong>desk</strong> + <span class="key-inline">E</span> to check out &nbsp;·&nbsp; <span class="key-inline">Q</span> to shelve</p>
   </div>
 </div>
 

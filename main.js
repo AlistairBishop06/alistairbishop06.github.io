@@ -366,9 +366,10 @@ function buildDesk() {
 const books = []; // { mesh, repo, slotIndex, isHeld, originalPosition, originalRotation }
 
 function makeBookTexture(repo) {
+  // High-res canvas: 128 wide × 512 tall — maps onto the narrow spine face
   const canvas = document.createElement('canvas');
-  canvas.width = 64;
-  canvas.height = 256;
+  canvas.width = 128;
+  canvas.height = 512;
   const ctx = canvas.getContext('2d');
 
   const col = langColor(repo.language);
@@ -376,43 +377,72 @@ function makeBookTexture(repo) {
   const g = (col >> 8) & 0xff;
   const b = col & 0xff;
 
-  // Spine background
-  ctx.fillStyle = `rgb(${r},${g},${b})`;
-  ctx.fillRect(0, 0, 64, 256);
+  // Spine background with a subtle vertical gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, 512);
+  grad.addColorStop(0,   `rgb(${Math.min(r+30,255)},${Math.min(g+30,255)},${Math.min(b+30,255)})`);
+  grad.addColorStop(0.5, `rgb(${r},${g},${b})`);
+  grad.addColorStop(1,   `rgb(${Math.max(r-40,0)},${Math.max(g-40,0)},${Math.max(b-40,0)})`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 128, 512);
 
-  // Darker top and bottom strips
-  ctx.fillStyle = `rgba(0,0,0,0.3)`;
-  ctx.fillRect(0, 0, 64, 20);
-  ctx.fillRect(0, 236, 64, 20);
+  // Dark header/footer bands
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillRect(0, 0,   128, 48);
+  ctx.fillRect(0, 464, 128, 48);
 
-  // Gold line accents
-  ctx.fillStyle = 'rgba(255,215,100,0.5)';
-  ctx.fillRect(4, 22, 56, 2);
-  ctx.fillRect(4, 232, 56, 2);
+  // Gold rule lines inside the bands
+  ctx.fillStyle = 'rgba(255,210,80,0.7)';
+  ctx.fillRect(8, 50,  112, 2);
+  ctx.fillRect(8, 460, 112, 2);
 
-  // Title text (rotated along spine)
-  ctx.save();
-  ctx.translate(32, 230);
-  ctx.rotate(-Math.PI / 2);
-  ctx.fillStyle = '#fff';
-  ctx.shadowColor = 'rgba(0,0,0,0.6)';
-  ctx.shadowBlur = 4;
+  // Thin side border lines for a classic bound-book look
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fillRect(0,   0, 6, 512);
+  ctx.fillRect(122, 0, 6, 512);
 
+  // ── Title text, rotated to run bottom→top along spine ──
   const name = repo.name.replace(/-/g, ' ').replace(/_/g, ' ');
-  ctx.font = 'bold 12px Georgia, serif';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
 
-  // Truncate if too long
-  const maxW = 190;
+  ctx.save();
+  ctx.translate(64, 470);   // start near bottom
+  ctx.rotate(-Math.PI / 2); // rotate so text reads upward
+
+  // Dark backing strip so text is legible on any colour
+  const maxTextW = 380;
+  ctx.font = 'bold 28px Georgia, serif';
   let displayName = name;
-  while (ctx.measureText(displayName).width > maxW && displayName.length > 3) {
+  while (ctx.measureText(displayName).width > maxTextW && displayName.length > 2) {
     displayName = displayName.slice(0, -1);
   }
   if (displayName !== name) displayName += '…';
 
+  const tw = ctx.measureText(displayName).width;
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillRect(-8, -22, tw + 16, 34);
+
+  // White text with strong shadow
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = 'rgba(0,0,0,0.9)';
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetX = 1;
+  ctx.shadowOffsetY = 1;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
   ctx.fillText(displayName, 0, 0);
   ctx.restore();
+
+  // ── Language label in the header band ──
+  if (repo.language) {
+    ctx.save();
+    ctx.font = '500 18px Georgia, serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur = 4;
+    ctx.fillText(repo.language, 64, 24);
+    ctx.restore();
+  }
 
   return new THREE.CanvasTexture(canvas);
 }
@@ -425,8 +455,8 @@ function createBook(repo, slotIndex) {
   const spineTex = makeBookTexture(repo);
 
   // Book dimensions: width=spine, height=tall, depth=page thickness
-  const bW = 0.055 + Math.random() * 0.03;
-  const bH = 0.6 + Math.random() * 0.15;
+  const bW = 0.075 + Math.random() * 0.035;
+  const bH = 0.62 + Math.random() * 0.15;
   const bD = 0.22;
 
   const geo = new THREE.BoxGeometry(bW, bH, bD);
@@ -442,6 +472,9 @@ function createBook(repo, slotIndex) {
   const mesh = new THREE.Mesh(geo, materials);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
+
+  // Store refs to coloured mats so we can toggle emissive glow on hover
+  mesh.userData.glowMats = [solidMat, spineMat];
 
   // Position at slot
   mesh.position.copy(slot.position);
@@ -515,6 +548,7 @@ function setupControls() {
 
   document.addEventListener('keydown', e => {
     if (e.code === 'KeyE') handleCheckout();
+    if (e.code === 'KeyQ') returnHeldBook();
     if (e.code === 'Escape' && readmeOpen) closeReadme();
   });
 
@@ -543,6 +577,33 @@ function getBookMeshes() {
   return books.filter(b => !b.isHeld).map(b => b.mesh);
 }
 
+// Track which book is currently glowing so we can clear it
+let glowedBook = null;
+
+function setBookGlow(bookData, on) {
+  if (!bookData) return;
+  const mats = bookData.mesh.userData.glowMats;
+  if (!mats) return;
+  const intensity = on ? 0.35 : 0;
+  const col = on ? new THREE.Color(0xfff0c0) : new THREE.Color(0x000000);
+  mats.forEach(m => {
+    m.emissive = col;
+    m.emissiveIntensity = intensity;
+  });
+}
+
+function formatLastUpdated(dateStr) {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const days  = Math.floor(diff / 86400000);
+  if (days === 0) return 'Updated today';
+  if (days === 1) return 'Updated yesterday';
+  if (days <  30) return `Updated ${days}d ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `Updated ${months}mo ago`;
+  return `Updated ${Math.floor(months / 12)}y ago`;
+}
+
 function updateRaycast() {
   raycaster.setFromCamera(screenCenter, camera);
   const meshes = getBookMeshes();
@@ -552,14 +613,34 @@ function updateRaycast() {
     const hit = hits[0].object;
     const bookData = books.find(b => b.mesh === hit);
     if (bookData) {
+      // Clear glow from previous book if it changed
+      if (glowedBook && glowedBook !== bookData) {
+        setBookGlow(glowedBook, false);
+      }
+      // Apply glow to newly looked-at book
+      if (glowedBook !== bookData) {
+        setBookGlow(bookData, true);
+        glowedBook = bookData;
+      }
+
       lookedAtBook = bookData;
       bookInfoName.textContent = bookData.repo.name;
       bookInfoDesc.textContent = bookData.repo.description || 'No description provided.';
+
+      // Last updated (feature 7) — uses pushed_at from GitHub API
+      const updated = formatLastUpdated(bookData.repo.pushed_at || bookData.repo.updated_at);
+      document.getElementById('book-info-updated').textContent = updated;
+
       bookInfoEl.classList.add('visible');
       return;
     }
   }
 
+  // Nothing hit — clear glow and HUD
+  if (glowedBook) {
+    setBookGlow(glowedBook, false);
+    glowedBook = null;
+  }
   lookedAtBook = null;
   bookInfoEl.classList.remove('visible');
 }
@@ -568,6 +649,11 @@ function handleClick() {
   if (!lookedAtBook || heldBook) return;
 
   const bookData = lookedAtBook;
+
+  // Clear hover glow before picking up
+  setBookGlow(bookData, false);
+  if (glowedBook === bookData) glowedBook = null;
+
   bookData.isHeld = true;
   heldBook = bookData;
 
