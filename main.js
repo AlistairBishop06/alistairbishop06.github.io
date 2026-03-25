@@ -1361,6 +1361,7 @@ function initEditor() {
 
   // Position camera above for a better editorial view
   yawObj.position.set(0, PLAYER_HEIGHT, 14);
+  editorUpdateShelfNumbers();
 }
 
 // ─── editor helpers ───
@@ -1371,6 +1372,53 @@ function editorGetMouseNDC(e) {
     ((e.clientX - rect.left) / rect.width)  * 2 - 1,
     -((e.clientY - rect.top)  / rect.height) * 2 + 1
   );
+}
+
+function editorUpdateShelfNumbers() {
+  shelfGroups.forEach((sg, index) => {
+    const orderNum = index + 1;
+    let sprite = sg.group.children.find(c => c.userData.isOrderLabel);
+    
+    // If the sprite exists but has the wrong number (e.g., after a deletion), remove it
+    if (sprite && sprite.userData.orderNum !== orderNum) {
+      sg.group.remove(sprite);
+      sprite.material.map.dispose();
+      sprite.material.dispose();
+      sprite = null;
+    }
+
+    // Create a new sprite if needed
+    if (!sprite) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128; canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      
+      // Draw background circle
+      ctx.fillStyle = 'rgba(232, 213, 163, 0.9)'; // Matches editor UI theme
+      ctx.beginPath();
+      ctx.arc(64, 64, 45, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Draw text
+      ctx.fillStyle = '#1a1005';
+      ctx.font = 'bold 50px Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(orderNum.toString(), 64, 64);
+      
+      const tex = new THREE.CanvasTexture(canvas);
+      const mat = new THREE.SpriteMaterial({ map: tex, depthTest: false }); // depthTest: false makes it visible through walls
+      sprite = new THREE.Sprite(mat);
+      
+      sprite.scale.set(1.2, 1.2, 1);
+      // Position it dynamically based on your shelf height constants
+      sprite.position.set(0, SHELF_ROWS * SHELF_SPACING + 1.2, 0);
+      sprite.userData = { isOrderLabel: true, orderNum };
+      sprite.renderOrder = 999; 
+      
+      sg.group.add(sprite);
+    }
+  });
 }
 
 function editorPickObject(e) {
@@ -1533,6 +1581,7 @@ function editorSyncShelfSlots() {
 function editorAddShelf() {
   addShelfUnit(0, 0, 0);
   editorSelect({ group: shelfGroups[shelfGroups.length - 1].group, type: 'shelf', shelfData: shelfGroups[shelfGroups.length - 1] });
+  editorUpdateShelfNumbers();
 }
 
 function editorAddProp(key) {
@@ -1561,6 +1610,7 @@ function editorDeleteSelected() {
   const idx = shelfGroups.findIndex(s => s.group === editorSelectedObject);
   if (idx >= 0) shelfGroups.splice(idx, 1);
   editorSelect(null);
+  editorUpdateShelfNumbers();
 }
 
 // Mouse drag in world space on the ground plane
