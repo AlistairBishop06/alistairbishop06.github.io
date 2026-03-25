@@ -302,6 +302,18 @@ function buildDesk(x = 0, z = 6) {
   sign.position.set(0, 1.22, -0.65);
   group.add(sign);
 
+  const bookColors = [0x8b2020, 0x204880, 0x206030];
+  for (let i = 0; i < 3; i++) {
+    const b = new THREE.Mesh(
+      new THREE.BoxGeometry(0.25 - i * 0.02, 0.06, 0.18),
+      new THREE.MeshLambertMaterial({ color: bookColors[i] })
+    );
+    b.position.set(-0.7, 1.09 + i * 0.065, -0.1);
+    b.rotation.y = i * 0.08;
+    b.castShadow = true;
+    group.add(b);
+  }
+
   group.traverse(child => { if (child.isMesh) child.userData.deskGroup = group; });
   scene.add(group);
   deskGroup = group;
@@ -309,100 +321,306 @@ function buildDesk(x = 0, z = 6) {
 }
 
 // ─────────────────────────────────────────────
-// DECORATIVE PROPS
+// DECORATIVE PROPS  (multiple per kind; layout.props is an array)
 // ─────────────────────────────────────────────
 
-const propGroups = {}; // keyed by prop name
+/** @type {{ id: string, group: THREE.Object3D }[]} */
+const propInstances = [];
+let propIdCounter = 0;
 
-function buildProps(cfg = {}) {
-  const chair  = cfg.chair  || { x: 3.5, z: 3,   rotY: -0.4 };
-  const table  = cfg.table  || { x: 4.8, z: 2.5 };
-  const candle = cfg.candle || { x: 4.8, z: 2.5 };
-  const rug    = cfg.rug    || { x: 4,   z: 3   };
+const EDITOR_POS_GRID = 0.05;
 
-  // ── Reading chair ──
-  const chairMat = new THREE.MeshLambertMaterial({ color: 0x3d1a0a });
-  const chairGrp = new THREE.Group();
+function snapEditorAxis(v) {
+  const g = EDITOR_POS_GRID;
+  return Math.round(v / g) * g;
+}
 
-  const seat = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.12, 0.7), chairMat);
-  seat.position.y = 0.45;
-  chairGrp.add(seat);
+const PROP_DEFAULTS = {
+  chair:     { x: 3.5,  z: 3,   y: 0,    rotY: -0.4 },
+  table:     { x: 4.8,  z: 2.5, y: 0,    rotY: 0 },
+  candle:    { x: 4.8,  z: 2.5, y: 0.74, rotY: 0 },
+  rug:       { x: 4,    z: 3,   y: 0,    rotY: 0 },
+  plant:     { x: -2,   z: 4,   y: 0,    rotY: 0 },
+  globe:     { x: 2,    z: -4,  y: 0,    rotY: 0 },
+  light:     { x: -6,   z: -6,  y: 0,    rotY: 0 },
+  bookStack: { x: 1,    z: -2,  y: 0,    rotY: 0 },
+};
 
-  const back = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.1), chairMat);
-  back.position.set(0, 0.88, -0.3);
-  chairGrp.add(back);
+function normalizePropConfig(kind, raw) {
+  const d = PROP_DEFAULTS[kind];
+  if (!d) return null;
+  return {
+    x:    raw.x    !== undefined ? raw.x    : d.x,
+    z:    raw.z    !== undefined ? raw.z    : d.z,
+    y:    raw.y    !== undefined ? raw.y    : d.y,
+    rotY: raw.rotY !== undefined ? raw.rotY : d.rotY,
+  };
+}
 
-  [[-0.35, 0.2], [0.35, 0.2], [-0.35, -0.2], [0.35, -0.2]].forEach(([lx, lz]) => {
-    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.45, 0.06), chairMat);
-    leg.position.set(lx, 0.22, lz);
-    chairGrp.add(leg);
-  });
+function clearProps() {
+  propInstances.forEach(({ group }) => scene.remove(group));
+  propInstances.length = 0;
+}
 
-  chairGrp.position.set(chair.x, 0, chair.z);
-  chairGrp.rotation.y = chair.rotY ?? -0.4;
-  chairGrp.castShadow = true;
-  chairGrp.userData.isPropGroup = true;
-  chairGrp.userData.propKey = 'chair';
-  chairGrp.traverse(c => { if (c.isMesh) c.userData.propGroup = chairGrp; });
-  scene.add(chairGrp);
-  propGroups.chair = chairGrp;
+function tagPropGroup(grp, kind, id) {
+  grp.userData.isPropGroup = true;
+  grp.userData.propKind = kind;
+  grp.userData.propId = id;
+  grp.userData.propKey = kind;
+  grp.traverse(c => { if (c.isMesh) c.userData.propGroup = grp; });
+}
 
-  // ── Side table ──
-  const tableMat = new THREE.MeshLambertMaterial({ color: 0x4a2a0d });
-  const tableGrp = new THREE.Group();
-  const tabTop = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.06, 16), tableMat);
-  tabTop.position.y = 0.65;
-  tableGrp.add(tabTop);
-  const tabLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 0.65, 8), tableMat);
-  tabLeg.position.y = 0.32;
-  tableGrp.add(tabLeg);
-  tableGrp.position.set(table.x, 0, table.z);
-  tableGrp.userData.isPropGroup = true;
-  tableGrp.userData.propKey = 'table';
-  tableGrp.traverse(c => { if (c.isMesh) c.userData.propGroup = tableGrp; });
-  scene.add(tableGrp);
-  propGroups.table = tableGrp;
+function nextPropId() {
+  propIdCounter += 1;
+  return 'p' + propIdCounter;
+}
 
-  // ── Candle ──
-  const candleGrp = new THREE.Group();
-  const candleMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.03, 0.03, 0.18, 8),
-    new THREE.MeshLambertMaterial({ color: 0xe8d08a })
-  );
-  candleGrp.add(candleMesh);
-  candleGrp.position.set(candle.x, 0.74, candle.z);
-  candleGrp.userData.isPropGroup = true;
-  candleGrp.userData.propKey = 'candle';
-  scene.add(candleGrp);
-  propGroups.candle = candleGrp;
-
-  const flame = new THREE.PointLight(0xff9933, 1.5, 4);
-  flame.position.set(candle.x, 0.95, candle.z);
-  scene.add(flame);
-  window._flameLight = flame;
-
-  // ── Rug ──
-  const rugMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(3, 0.02, 2.5),
-    new THREE.MeshLambertMaterial({ color: 0x7a3020 })
-  );
-  rugMesh.position.set(rug.x, 0.01, rug.z);
-  rugMesh.userData.isPropGroup = true;
-  rugMesh.userData.propKey = 'rug';
-  scene.add(rugMesh);
-  propGroups.rug = rugMesh;
-
-  // ── Books on desk ──
-  const colors = [0x8b2020, 0x204880, 0x206030];
-  for (let i = 0; i < 3; i++) {
-    const b = new THREE.Mesh(
-      new THREE.BoxGeometry(0.25 - i * 0.02, 0.06, 0.18),
-      new THREE.MeshLambertMaterial({ color: colors[i] })
-    );
-    b.position.set(DESK_POS.x - 0.7, 1.09 + i * 0.065, DESK_POS.z - 0.1);
-    b.rotation.y = i * 0.08;
-    scene.add(b);
+function seedPropIdCounterFromList(list) {
+  let max = 0;
+  for (const p of list) {
+    if (!p || !p.id) continue;
+    const m = String(p.id).match(/^p(\d+)$/i);
+    if (m) max = Math.max(max, parseInt(m[1], 10));
   }
+  propIdCounter = max;
+}
+
+function ensurePropListIds(list) {
+  seedPropIdCounterFromList(list);
+  for (const p of list) {
+    if (!p.id) p.id = nextPropId();
+  }
+}
+
+/** Old layout.json: props as { chair: {x,z,...}, ... } */
+function legacyPropsObjectToArray(obj) {
+  return Object.entries(obj)
+    .map(([kind, v]) => {
+      if (!PROP_DEFAULTS[kind] || !v || typeof v !== 'object') return null;
+      const { id, kind: _k, ...rest } = v;
+      return { id: id || `legacy_${kind}`, kind, ...rest };
+    })
+    .filter(Boolean);
+}
+
+function defaultPropList() {
+  return [
+    { id: 'p1', kind: 'chair',  ...PROP_DEFAULTS.chair },
+    { id: 'p2', kind: 'table',  ...PROP_DEFAULTS.table },
+    { id: 'p3', kind: 'candle', ...PROP_DEFAULTS.candle },
+    { id: 'p4', kind: 'rug',    ...PROP_DEFAULTS.rug },
+  ];
+}
+
+function buildPropInstance(kind, c, id) {
+  switch (kind) {
+    case 'chair': {
+      const chairMat = new THREE.MeshLambertMaterial({ color: 0x3d1a0a });
+      const chairGrp = new THREE.Group();
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.12, 0.7), chairMat);
+      seat.position.y = 0.45;
+      seat.castShadow = true;
+      chairGrp.add(seat);
+      const back = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.1), chairMat);
+      back.position.set(0, 0.88, -0.3);
+      back.castShadow = true;
+      chairGrp.add(back);
+      [[-0.35, 0.2], [0.35, 0.2], [-0.35, -0.2], [0.35, -0.2]].forEach(([lx, lz]) => {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.45, 0.06), chairMat);
+        leg.position.set(lx, 0.22, lz);
+        leg.castShadow = true;
+        chairGrp.add(leg);
+      });
+      chairGrp.position.set(c.x, c.y, c.z);
+      chairGrp.rotation.y = c.rotY;
+      tagPropGroup(chairGrp, 'chair', id);
+      scene.add(chairGrp);
+      propInstances.push({ id, group: chairGrp });
+      break;
+    }
+    case 'table': {
+      const tableMat = new THREE.MeshLambertMaterial({ color: 0x4a2a0d });
+      const tableGrp = new THREE.Group();
+      const tabTop = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.06, 16), tableMat);
+      tabTop.position.y = 0.65;
+      tabTop.castShadow = true;
+      tableGrp.add(tabTop);
+      const tabLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 0.65, 8), tableMat);
+      tabLeg.position.y = 0.32;
+      tabLeg.castShadow = true;
+      tableGrp.add(tabLeg);
+      tableGrp.position.set(c.x, c.y, c.z);
+      tableGrp.rotation.y = c.rotY;
+      tagPropGroup(tableGrp, 'table', id);
+      scene.add(tableGrp);
+      propInstances.push({ id, group: tableGrp });
+      break;
+    }
+    case 'candle': {
+      const candleGrp = new THREE.Group();
+      const wax = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.03, 0.03, 0.18, 8),
+        new THREE.MeshLambertMaterial({ color: 0xe8d08a })
+      );
+      wax.position.y = 0.09;
+      candleGrp.add(wax);
+      const flame = new THREE.PointLight(0xff9933, 1.5, 4);
+      flame.position.set(0, 0.22, 0);
+      flame.userData.candleFlame = true;
+      candleGrp.add(flame);
+      candleGrp.position.set(c.x, c.y, c.z);
+      candleGrp.rotation.y = c.rotY;
+      tagPropGroup(candleGrp, 'candle', id);
+      scene.add(candleGrp);
+      propInstances.push({ id, group: candleGrp });
+      break;
+    }
+    case 'rug': {
+      const rugGrp = new THREE.Group();
+      const rugMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(3, 0.02, 2.5),
+        new THREE.MeshLambertMaterial({ color: 0x7a3020 })
+      );
+      rugMesh.position.y = 0.01;
+      rugMesh.receiveShadow = true;
+      rugGrp.add(rugMesh);
+      rugGrp.position.set(c.x, c.y, c.z);
+      rugGrp.rotation.y = c.rotY;
+      tagPropGroup(rugGrp, 'rug', id);
+      scene.add(rugGrp);
+      propInstances.push({ id, group: rugGrp });
+      break;
+    }
+    case 'plant': {
+      const potMat = new THREE.MeshLambertMaterial({ color: 0x5a3a22 });
+      const leafMat = new THREE.MeshLambertMaterial({ color: 0x2d5a28 });
+      const grp = new THREE.Group();
+      const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.18, 0.35, 12), potMat);
+      pot.position.y = 0.175;
+      pot.castShadow = true;
+      grp.add(pot);
+      for (let i = 0; i < 5; i++) {
+        const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.18 + (i % 2) * 0.06, 8, 6), leafMat);
+        const a = (i / 5) * Math.PI * 2;
+        leaf.position.set(Math.cos(a) * 0.12, 0.52 + i * 0.05, Math.sin(a) * 0.12);
+        leaf.scale.set(1, 1.4, 0.7);
+        leaf.castShadow = true;
+        grp.add(leaf);
+      }
+      grp.position.set(c.x, c.y, c.z);
+      grp.rotation.y = c.rotY;
+      tagPropGroup(grp, 'plant', id);
+      scene.add(grp);
+      propInstances.push({ id, group: grp });
+      break;
+    }
+    case 'globe': {
+      const wood = new THREE.MeshLambertMaterial({ color: 0x3d2810 });
+      const ocean = new THREE.MeshLambertMaterial({ color: 0x1a4080 });
+      const grp = new THREE.Group();
+      const meridian = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.015, 8, 24), wood);
+      meridian.rotation.x = Math.PI / 2;
+      meridian.position.y = 0.95;
+      grp.add(meridian);
+      const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.26, 20, 16), ocean);
+      sphere.position.y = 0.95;
+      sphere.castShadow = true;
+      grp.add(sphere);
+      const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.12, 0.15, 8), wood);
+      stand.position.y = 0.075;
+      grp.add(stand);
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.55, 6), wood);
+      pole.position.y = 0.55;
+      grp.add(pole);
+      grp.position.set(c.x, c.y, c.z);
+      grp.rotation.y = c.rotY;
+      tagPropGroup(grp, 'globe', id);
+      scene.add(grp);
+      propInstances.push({ id, group: grp });
+      break;
+    }
+    case 'light': {
+      const metal = new THREE.MeshLambertMaterial({ color: 0x2a2218 });
+      const shadeMat = new THREE.MeshLambertMaterial({ color: 0xd8c8a0 });
+      const grp = new THREE.Group();
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 0.06, 16), metal);
+      base.position.y = 0.03;
+      base.castShadow = true;
+      grp.add(base);
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 1.35, 8), metal);
+      pole.position.y = 0.72;
+      grp.add(pole);
+      const shade = new THREE.Mesh(new THREE.ConeGeometry(0.38, 0.35, 12, 1, true), shadeMat);
+      shade.position.y = 1.52;
+      grp.add(shade);
+      const bulb = new THREE.PointLight(0xffddaa, 1.2, 10);
+      bulb.position.set(0, 1.35, 0);
+      grp.add(bulb);
+      grp.position.set(c.x, c.y, c.z);
+      grp.rotation.y = c.rotY;
+      tagPropGroup(grp, 'light', id);
+      scene.add(grp);
+      propInstances.push({ id, group: grp });
+      break;
+    }
+    case 'bookStack': {
+      const grp = new THREE.Group();
+      const cols = [0x6b2020, 0x304878, 0x285028, 0x705020, 0x503070];
+      let y = 0.03;
+      for (let i = 0; i < 5; i++) {
+        const w = 0.22 - (i % 2) * 0.02;
+        const h = 0.045 + (i % 3) * 0.012;
+        const d = 0.16;
+        const book = new THREE.Mesh(
+          new THREE.BoxGeometry(w, h, d),
+          new THREE.MeshLambertMaterial({ color: cols[i] })
+        );
+        book.position.set(0, y + h / 2, 0);
+        book.rotation.y = (i - 2) * 0.12;
+        book.castShadow = true;
+        grp.add(book);
+        y += h;
+      }
+      grp.position.set(c.x, c.y, c.z);
+      grp.rotation.y = c.rotY;
+      tagPropGroup(grp, 'bookStack', id);
+      scene.add(grp);
+      propInstances.push({ id, group: grp });
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+/**
+ * @param cfg {null|undefined|object[]|Record<string,object>}
+ *        null/undefined → default chair/table/candle/rug set
+ *        [] → no props
+ *        array → { id?, kind, x, z, y?, rotY? }[]
+ *        object → legacy single-instance-per-kind map
+ */
+function buildProps(cfg) {
+  clearProps();
+
+  let list;
+  if (cfg === null || cfg === undefined) {
+    list = defaultPropList();
+  } else if (Array.isArray(cfg)) {
+    list = cfg.map(p => ({ ...p }));
+  } else if (typeof cfg === 'object') {
+    list = legacyPropsObjectToArray(cfg);
+  } else {
+    list = [];
+  }
+
+  ensurePropListIds(list);
+
+  list.forEach(item => {
+    if (!item || !item.kind || !PROP_DEFAULTS[item.kind]) return;
+    const c = normalizePropConfig(item.kind, item);
+    if (c) buildPropInstance(item.kind, c, item.id);
+  });
 }
 
 // ─────────────────────────────────────────────
@@ -435,7 +653,11 @@ function buildFromLayout(layout) {
   const d = layout.desk || { x: 0, z: 6 };
   buildDesk(d.x, d.z);
 
-  buildProps(layout.props || {});
+  const p = layout.props;
+  if (p == null) buildProps(null);
+  else if (Array.isArray(p)) buildProps(p);
+  else if (typeof p === 'object' && Object.keys(p).length === 0) buildProps([]);
+  else buildProps(p);
 }
 
 function buildShelves() {
@@ -1008,6 +1230,22 @@ function updateMovement(dt) {
   if (keys['KeyS']) moveDir.z += 1;
   if (keys['KeyA']) moveDir.x -= 1;
   if (keys['KeyD']) moveDir.x += 1;
+
+  if (EDIT_MODE) {
+    if (moveDir.length() > 0) {
+      moveDir.normalize().applyEuler(new THREE.Euler(0, yawObj.rotation.y, 0));
+      const next = yawObj.position.clone().addScaledVector(moveDir, PLAYER_SPEED * dt);
+      next.x = Math.max(-ROOM_W/2 + 0.5, Math.min(ROOM_W/2 - 0.5, next.x));
+      next.z = Math.max(-ROOM_D/2 + 0.5, Math.min(ROOM_D/2 - 0.5, next.z));
+      yawObj.position.x = next.x;
+      yawObj.position.z = next.z;
+    }
+    if (keys['Space']) yawObj.position.y += PLAYER_SPEED * dt;
+    if (keys['ShiftLeft'] || keys['ShiftRight']) yawObj.position.y -= PLAYER_SPEED * dt;
+    yawObj.position.y = Math.max(0.35, Math.min(ROOM_H - 0.2, yawObj.position.y));
+    return;
+  }
+
   if (moveDir.length() === 0) return;
   moveDir.normalize().applyEuler(new THREE.Euler(0, yawObj.rotation.y, 0));
 
@@ -1119,9 +1357,14 @@ function animate() {
   if (frameCount % 2 === 0 && !bookOpen && !EDIT_MODE) updateRaycast();
   updateDeskProximity();
 
-  if (window._flameLight) {
-    window._flameLight.intensity = 1.3 + Math.sin(frameCount * 0.18) * 0.2 + Math.random() * 0.1;
-  }
+  propInstances.forEach(({ group }) => {
+    if (group.userData.propKind !== 'candle') return;
+    group.traverse(child => {
+      if (child.isPointLight && child.userData.candleFlame) {
+        child.intensity = 1.3 + Math.sin(frameCount * 0.18) * 0.2 + Math.random() * 0.1;
+      }
+    });
+  });
 
   if (EDIT_MODE) editorTick();
 
@@ -1141,11 +1384,15 @@ window.addEventListener('resize', () => {
 // ─────────────────────────────────────────────
 
 let editorSelectedObject = null; // the Three.js Group being dragged
-let editorSelectedType   = null; // 'shelf' | 'desk' | 'chair' | 'table' | 'candle' | 'rug'
-let editorSelectedIndex  = null; // index in shelfGroups array (for shelves)
+let editorSelectedType   = null; // 'shelf' | 'desk' | prop key string
+let editorSelectedShelf    = null; // shelf metadata when type === 'shelf'
+let editorSelectedPropId   = null;
+let editorSelectedPropKind = null;
+let editorRmbLook          = false;
 let editorDragPlane      = null; // THREE.Plane for mouse-world intersection
 let editorDragOffset     = new THREE.Vector3();
 let editorIsDragging     = false;
+let editorDragGroundY    = 0;
 const editorRaycaster    = new THREE.Raycaster();
 
 function initEditor() {
@@ -1307,6 +1554,12 @@ function initEditor() {
     body.edit-mode #canvas-container { right: 280px; }
     body.edit-mode canvas { cursor: crosshair !important; }
     body.edit-mode .ed-obj-selected { cursor: move !important; }
+    #editor-panel .ed-decor-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+    #editor-panel .ed-decor-grid .ed-add-btn { margin-bottom: 0; font-size: 0.7rem; padding: 6px 8px; }
   `;
   document.head.appendChild(style);
   document.body.classList.add('edit-mode');
@@ -1314,7 +1567,7 @@ function initEditor() {
   // Badge
   const badge = document.createElement('div');
   badge.id = 'editor-badge';
-  badge.textContent = '✦ Editor Mode — click objects to select · drag to move';
+  badge.textContent = '✦ Editor — WASD walk · Space / Shift up-down · hold right-drag to look · click-drag to move';
   document.body.appendChild(badge);
 
   // Hide game UI that clutters the editor
@@ -1331,13 +1584,24 @@ function initEditor() {
       <button class="ed-add-btn" id="ed-add-shelf">
         <div class="swatch" style="background:#4a2e10"></div>Shelf unit
       </button>
-      <button class="ed-add-btn" id="ed-add-chair">
-        <div class="swatch" style="background:#3d1a0a"></div>Reading chair
-      </button>
+    </div>
+
+    <div class="ed-section">
+      <div class="ed-label">Place decor</div>
+      <div class="ed-decor-grid">
+        <button class="ed-add-btn" data-ed-prop="table"><div class="swatch" style="background:#4a2a0d"></div>Table</button>
+        <button class="ed-add-btn" data-ed-prop="chair"><div class="swatch" style="background:#3d1a0a"></div>Chair</button>
+        <button class="ed-add-btn" data-ed-prop="plant"><div class="swatch" style="background:#2d5a28"></div>Plant</button>
+        <button class="ed-add-btn" data-ed-prop="rug"><div class="swatch" style="background:#7a3020"></div>Rug</button>
+        <button class="ed-add-btn" data-ed-prop="globe"><div class="swatch" style="background:#1a4080"></div>Globe</button>
+        <button class="ed-add-btn" data-ed-prop="light"><div class="swatch" style="background:#d8c8a0"></div>Light</button>
+        <button class="ed-add-btn" data-ed-prop="candle"><div class="swatch" style="background:#e8d08a"></div>Candle</button>
+        <button class="ed-add-btn" data-ed-prop="bookStack"><div class="swatch" style="background:#503070"></div>Book stack</button>
+      </div>
     </div>
 
     <div class="ed-props" id="ed-props">
-      <div class="ed-hint">Click any furniture piece in the 3D view to select and move it.<br><br>Drag to reposition · use rotate buttons to turn.</div>
+      <div class="ed-hint">Click furniture or decor to select.<br><br>Drag on the floor plane to move X/Z. Adjust Y in the panel.</div>
     </div>
 
     <div class="ed-bottom">
@@ -1347,17 +1611,34 @@ function initEditor() {
   document.body.appendChild(panel);
 
   document.getElementById('ed-add-shelf').addEventListener('click', () => editorAddShelf());
-  document.getElementById('ed-add-chair').addEventListener('click', () => editorAddProp('chair'));
+  panel.querySelectorAll('[data-ed-prop]').forEach(btn => {
+    btn.addEventListener('click', () => editorAddProp(btn.getAttribute('data-ed-prop')));
+  });
   document.getElementById('ed-export-btn').addEventListener('click', editorCopyJSON);
+
+  renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
+  renderer.domElement.addEventListener('mousedown', e => {
+    if (e.button === 2) editorRmbLook = true;
+  });
+  document.addEventListener('mouseup', e => {
+    if (e.button === 2) editorRmbLook = false;
+  });
+  document.addEventListener('mousemove', e => {
+    if (!editorRmbLook) return;
+    yawObj.rotation.y -= e.movementX * 0.002;
+    pitchObj.rotation.x = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitchObj.rotation.x - e.movementY * 0.002));
+  });
 
   // Mouse events on the canvas
   renderer.domElement.addEventListener('mousedown', editorOnMouseDown);
   renderer.domElement.addEventListener('mousemove', editorOnMouseMove);
   renderer.domElement.addEventListener('mouseup',   editorOnMouseUp);
 
-  // Free-look camera in edit mode (WASD + right-mouse drag)
-  document.addEventListener('keydown', e => { keys[e.code] = true; });
-  document.addEventListener('keyup',   e => { keys[e.code] = false; });
+  document.addEventListener('keydown', e => {
+    keys[e.code] = true;
+    if (e.code === 'Space') e.preventDefault();
+  });
+  document.addEventListener('keyup', e => { keys[e.code] = false; });
 
   // Position camera above for a better editorial view
   yawObj.position.set(0, PLAYER_HEIGHT, 14);
@@ -1429,7 +1710,7 @@ function editorPickObject(e) {
   const candidates = [];
   shelfGroups.forEach(sg => sg.group.traverse(c => { if (c.isMesh) candidates.push(c); }));
   if (deskGroup) deskGroup.traverse(c => { if (c.isMesh) candidates.push(c); });
-  Object.values(propGroups).forEach(pg => {
+  propInstances.forEach(({ group: pg }) => {
     if (pg.traverse) pg.traverse(c => { if (c.isMesh) candidates.push(c); });
     else if (pg.isMesh) candidates.push(pg);
   });
@@ -1448,10 +1729,21 @@ function editorPickObject(e) {
     return { group: hit.userData.deskGroup, type: 'desk' };
   }
   if (hit.userData.propGroup) {
-    return { group: hit.userData.propGroup, type: hit.userData.propGroup.userData.propKey || 'prop' };
+    const g = hit.userData.propGroup;
+    return {
+      group: g,
+      type: 'prop',
+      propKind: g.userData.propKind || g.userData.propKey || 'prop',
+      propId: g.userData.propId,
+    };
   }
   if (hit.userData.isPropGroup) {
-    return { group: hit, type: hit.userData.propKey || 'prop' };
+    return {
+      group: hit,
+      type: 'prop',
+      propKind: hit.userData.propKind || hit.userData.propKey || 'prop',
+      propId: hit.userData.propId,
+    };
   }
   return null;
 }
@@ -1473,6 +1765,8 @@ function editorSelect(picked) {
   editorSelectedObject = picked ? picked.group : null;
   editorSelectedType   = picked ? picked.type  : null;
   editorSelectedShelf  = picked ? picked.shelfData : null;
+  editorSelectedPropId   = picked && picked.type === 'prop' ? picked.propId : null;
+  editorSelectedPropKind = picked && picked.type === 'prop' ? picked.propKind : null;
   if (editorSelectedObject) editorHighlight(editorSelectedObject, true);
   editorRenderProps();
 }
@@ -1480,22 +1774,29 @@ function editorSelect(picked) {
 function editorRenderProps() {
   const el = document.getElementById('ed-props');
   if (!editorSelectedObject) {
-    el.innerHTML = '<div class="ed-hint">Click any furniture piece in the 3D view to select and move it.<br><br>Drag to reposition · use rotate buttons to turn.</div>';
+    el.innerHTML = '<div class="ed-hint">Click furniture or decor to select.<br><br>Drag to move X/Z. Set Y in the panel · rotate with buttons.</div>';
     return;
   }
 
   const p = editorSelectedObject.position;
   const rDeg = Math.round((editorSelectedObject.rotation.y * 180 / Math.PI) % 360);
+  const title = editorSelectedType === 'prop'
+    ? `${editorSelectedPropKind} · ${editorSelectedPropId}`
+    : editorSelectedType;
 
   el.innerHTML = `
-    <div class="ed-selected-name">${editorSelectedType}</div>
+    <div class="ed-selected-name">${title}</div>
     <div class="ed-prop-row">
       <span class="ed-prop-label">X</span>
-      <input class="ed-prop-input" id="ed-px" type="number" step="0.5" value="${p.x.toFixed(2)}" />
+      <input class="ed-prop-input" id="ed-px" type="number" step="0.05" value="${p.x.toFixed(2)}" />
     </div>
     <div class="ed-prop-row">
       <span class="ed-prop-label">Z</span>
-      <input class="ed-prop-input" id="ed-pz" type="number" step="0.5" value="${p.z.toFixed(2)}" />
+      <input class="ed-prop-input" id="ed-pz" type="number" step="0.05" value="${p.z.toFixed(2)}" />
+    </div>
+    <div class="ed-prop-row">
+      <span class="ed-prop-label">Y</span>
+      <input class="ed-prop-input" id="ed-py" type="number" step="0.05" value="${p.y.toFixed(2)}" />
     </div>
     <div class="ed-label" style="margin-top:8px;margin-bottom:6px;">Rotation</div>
     <div class="ed-rot-row">
@@ -1505,9 +1806,10 @@ function editorRenderProps() {
     </div>
     <div class="ed-prop-row">
       <span class="ed-prop-label">Angle</span>
-      <input class="ed-prop-input" id="ed-rot-deg" type="number" step="15" value="${rDeg}" />
+      <input class="ed-prop-input" id="ed-rot-deg" type="number" step="5" value="${rDeg}" />
     </div>
     ${editorSelectedType === 'shelf' ? `<button class="ed-delete-btn" id="ed-delete-btn">Remove shelf</button>` : ''}
+    ${editorSelectedType === 'prop' ? `<button class="ed-delete-btn" id="ed-delete-prop-btn">Remove this decor</button>` : ''}
   `;
 
   document.getElementById('ed-px').addEventListener('change', e => {
@@ -1516,6 +1818,10 @@ function editorRenderProps() {
   });
   document.getElementById('ed-pz').addEventListener('change', e => {
     editorSelectedObject.position.z = parseFloat(e.target.value);
+    editorSyncShelfSlots();
+  });
+  document.getElementById('ed-py').addEventListener('change', e => {
+    editorSelectedObject.position.y = parseFloat(e.target.value);
     editorSyncShelfSlots();
   });
   document.getElementById('ed-rot-l').addEventListener('click', () => editorRotate(-Math.PI/2));
@@ -1528,6 +1834,8 @@ function editorRenderProps() {
   });
   const delBtn = document.getElementById('ed-delete-btn');
   if (delBtn) delBtn.addEventListener('click', editorDeleteSelected);
+  const delPropBtn = document.getElementById('ed-delete-prop-btn');
+  if (delPropBtn) delPropBtn.addEventListener('click', editorDeleteSelectedProp);
 }
 
 function editorRotate(delta) {
@@ -1584,15 +1892,38 @@ function editorAddShelf() {
   editorUpdateShelfNumbers();
 }
 
-function editorAddProp(key) {
-  // Remove old, rebuild with new random position
-  if (propGroups[key]) {
-    scene.remove(propGroups[key]);
-    delete propGroups[key];
-  }
-  const cfg = {};
-  cfg[key] = { x: 0, z: 0, rotY: 0 };
-  buildProps(cfg);
+function editorGatherPropsConfig() {
+  return propInstances.map(({ id, group: g }) => ({
+    id,
+    kind: g.userData.propKind,
+    x: g.position.x,
+    z: g.position.z,
+    y: g.position.y,
+    rotY: g.rotation ? g.rotation.y : 0,
+  }));
+}
+
+function editorAddProp(kind) {
+  if (!PROP_DEFAULTS[kind]) return;
+  const list = editorGatherPropsConfig();
+  list.push({
+    kind,
+    x: 0,
+    z: 0,
+    y: PROP_DEFAULTS[kind].y,
+    rotY: 0,
+  });
+  buildProps(list);
+  editorSelect(null);
+}
+
+function editorDeleteSelectedProp() {
+  if (!editorSelectedPropId) return;
+  const idx = propInstances.findIndex(p => p.id === editorSelectedPropId);
+  if (idx < 0) return;
+  scene.remove(propInstances[idx].group);
+  propInstances.splice(idx, 1);
+  editorSelect(null);
 }
 
 function editorDeleteSelected() {
@@ -1620,8 +1951,8 @@ function editorOnMouseDown(e) {
   if (!picked) { editorSelect(null); return; }
   editorSelect(picked);
 
-  // Set up drag plane at y=0
-  editorDragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  editorDragGroundY = editorSelectedObject.position.y;
+  editorDragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -editorDragGroundY);
   const ndc  = editorGetMouseNDC(e);
   editorRaycaster.setFromCamera(ndc, camera);
   const pt   = new THREE.Vector3();
@@ -1638,9 +1969,9 @@ function editorOnMouseMove(e) {
   const pt = new THREE.Vector3();
   editorRaycaster.ray.intersectPlane(editorDragPlane, pt);
 
-  // Snap to 0.5-unit grid
-  editorSelectedObject.position.x = Math.round((pt.x - editorDragOffset.x) * 2) / 2;
-  editorSelectedObject.position.z = Math.round((pt.z - editorDragOffset.z) * 2) / 2;
+  editorSelectedObject.position.x = snapEditorAxis(pt.x - editorDragOffset.x);
+  editorSelectedObject.position.z = snapEditorAxis(pt.z - editorDragOffset.z);
+  editorSelectedObject.position.y = editorDragGroundY;
 
   editorSyncShelfSlots();
   editorRenderProps();
@@ -1662,15 +1993,14 @@ function editorBuildJSON() {
     ? { x: parseFloat(deskGroup.position.x.toFixed(2)), z: parseFloat(deskGroup.position.z.toFixed(2)) }
     : { x: 0, z: 6 };
 
-  const props = {};
-  Object.entries(propGroups).forEach(([key, grp]) => {
-    const g = grp.isGroup ? grp : grp;
-    props[key] = {
-      x:    parseFloat((g.position ? g.position.x : 0).toFixed(2)),
-      z:    parseFloat((g.position ? g.position.z : 0).toFixed(2)),
-      rotY: parseFloat((g.rotation ? g.rotation.y : 0).toFixed(4)),
-    };
-  });
+  const props = editorGatherPropsConfig().map(entry => ({
+    id:   entry.id,
+    kind: entry.kind,
+    x:    parseFloat(entry.x.toFixed(2)),
+    z:    parseFloat(entry.z.toFixed(2)),
+    y:    parseFloat(entry.y.toFixed(2)),
+    rotY: parseFloat(entry.rotY.toFixed(4)),
+  }));
 
   return JSON.stringify({ shelves, desk, props }, null, 2);
 }
