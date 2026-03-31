@@ -163,7 +163,7 @@ const shelfSlots   = [];
 const shelfObjects = [];
 
 const SHELF_H         = 0.12;
-const SHELF_D         = 0.28;
+const SHELF_D         = 0.5;
 const BOOKS_PER_SHELF = 8;
 const SHELF_ROWS      = 3;
 const SHELF_SPACING   = 1.1;
@@ -748,7 +748,7 @@ function createBook(repo, slotIndex) {
 
   const bW = 0.075 + Math.random() * 0.035;
   const bH = 0.62  + Math.random() * 0.15;
-  const bD = 0.22;
+  const bD = 0.4;
 
   const geo      = new THREE.BoxGeometry(bW, bH, bD);
   const spineMat = new THREE.MeshLambertMaterial({ map: spineTex });
