@@ -38,6 +38,129 @@ const LANG_COLORS = {
 };
 function langColor(lang) { return LANG_COLORS[lang] ?? LANG_COLORS[null]; }
 
+// Language → logo (used on book front covers)
+// Uses Devicon via jsDelivr which generally provides CORS headers needed for canvas usage.
+const LANG_LOGO_URLS = {
+  'JavaScript': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg',
+  'TypeScript': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg',
+  'Python':     'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg',
+  'Rust':       'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/rust/rust-original.svg',
+  'Go':         'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/go/go-original.svg',
+  'C#':         'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/csharp/csharp-original.svg',
+  'C++':        'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg',
+  'HTML':       'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg',
+  'CSS':        'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg',
+  'Shell':      'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/bash/bash-original.svg',
+  'Ruby':       'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/ruby/ruby-original.svg',
+  'Swift':      'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/swift/swift-original.svg',
+  'Kotlin':     'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kotlin/kotlin-original.svg',
+  'Java':       'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg',
+  'PHP':        'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/php/php-original.svg',
+  'Lua':        'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/lua/lua-original.svg',
+  'ASP.NET':    'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/windows11/windows11-original.svg'
+};
+function langLogoUrl(lang) { return LANG_LOGO_URLS[lang] ?? null; }
+
+const logoImagePromiseCache = new Map(); // url -> Promise<HTMLImageElement|null>
+function loadLogoImage(url) {
+  if (!url) return Promise.resolve(null);
+  if (logoImagePromiseCache.has(url)) return logoImagePromiseCache.get(url);
+
+  const p = new Promise(resolve => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+  logoImagePromiseCache.set(url, p);
+  return p;
+}
+
+function addRoundedRectPath(ctx, x, y, w, h, r) {
+  const rr = Math.max(0, Math.min(r, w / 2, h / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+const coverTextureCache = new Map(); // language|null -> THREE.CanvasTexture
+function makeCoverTextureForLanguage(lang) {
+  const key = lang ?? null;
+  if (coverTextureCache.has(key)) return coverTextureCache.get(key);
+
+  const W = 512, H = 768;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  const col = langColor(lang);
+  const r = (col >> 16) & 0xff;
+  const g = (col >> 8) & 0xff;
+  const b = col & 0xff;
+
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0,   `rgb(${Math.min(r+22,255)},${Math.min(g+22,255)},${Math.min(b+22,255)})`);
+  grad.addColorStop(0.5, `rgb(${r},${g},${b})`);
+  grad.addColorStop(1,   `rgb(${Math.max(r-48,0)},${Math.max(g-48,0)},${Math.max(b-48,0)})`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle border + vignette
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 10;
+  ctx.strokeRect(10, 10, W - 20, H - 20);
+  const vignette = ctx.createRadialGradient(W/2, H/2, Math.min(W, H) * 0.1, W/2, H/2, Math.max(W, H) * 0.75);
+  vignette.addColorStop(0, 'rgba(0,0,0,0)');
+  vignette.addColorStop(1, 'rgba(0,0,0,0.22)');
+  ctx.fillStyle = vignette;
+  ctx.fillRect(0, 0, W, H);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  coverTextureCache.set(key, tex);
+
+  const url = langLogoUrl(lang);
+  if (url) {
+    loadLogoImage(url).then(img => {
+      if (!img) return;
+
+      const maxW = W * 0.68;
+      const maxH = H * 0.46;
+      const iw = img.naturalWidth || img.width || 1;
+      const ih = img.naturalHeight || img.height || 1;
+      const s = Math.min(maxW / iw, maxH / ih);
+      const dw = Math.max(1, Math.floor(iw * s));
+      const dh = Math.max(1, Math.floor(ih * s));
+      const dx = Math.floor((W - dw) / 2);
+      const dy = Math.floor((H - dh) / 2);
+
+      // Soft backdrop to keep logos readable on dark colours
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      addRoundedRectPath(ctx, dx - 24, dy - 24, dw + 48, dh + 48, 22);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.globalAlpha = 0.95;
+      ctx.shadowColor = 'rgba(0,0,0,0.55)';
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 8;
+      ctx.drawImage(img, dx, dy, dw, dh);
+      ctx.restore();
+
+      tex.needsUpdate = true;
+    });
+  }
+
+  return tex;
+}
+
 // ─────────────────────────────────────────────
 // DOM REFS
 // ─────────────────────────────────────────────
@@ -745,6 +868,10 @@ function createBook(repo, slotIndex) {
 
   const col      = langColor(repo.language);
   const spineTex = makeBookTexture(repo);
+  const coverTex = makeCoverTextureForLanguage(repo.language);
+  if (coverTex && renderer && renderer.capabilities) {
+    coverTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  }
 
   const bW = 0.075 + Math.random() * 0.035;
   const bH = 0.62  + Math.random() * 0.15;
@@ -752,9 +879,12 @@ function createBook(repo, slotIndex) {
 
   const geo      = new THREE.BoxGeometry(bW, bH, bD);
   const spineMat = new THREE.MeshLambertMaterial({ map: spineTex });
+  const coverMat = new THREE.MeshLambertMaterial({ map: coverTex, color: 0xffffff });
   const solidMat = new THREE.MeshLambertMaterial({ color: col });
   const pageMat  = new THREE.MeshLambertMaterial({ color: 0xe8d5b0 });
-  const materials = [solidMat, solidMat, pageMat, solidMat, spineMat, solidMat];
+  // BoxGeometry material order: +x, -x, +y, -y, +z, -z
+  // We treat ±x as the front/back covers, +z as the spine.
+  const materials = [coverMat, coverMat, pageMat, solidMat, spineMat, solidMat];
 
   const mesh = new THREE.Mesh(geo, materials);
   mesh.castShadow = true;
