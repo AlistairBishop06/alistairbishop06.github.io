@@ -1,4 +1,4 @@
-﻿//  EDITOR SYSTEM  (only active with ?edit)
+//  EDITOR SYSTEM  (only active with ?edit)
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -21,7 +21,7 @@ function initEditor() {
     #editor-panel {
       position: fixed;
       top: 0; right: 0; bottom: 0;
-      width: 280px;
+      width: 300px;
       background: rgba(8,5,3,0.96);
       border-left: 1px solid rgba(232,213,163,0.12);
       display: flex;
@@ -170,15 +170,32 @@ function initEditor() {
       z-index: 300;
       pointer-events: none;
     }
-    body.edit-mode #canvas-container { right: 280px; }
+    body.edit-mode #canvas-container { right: 300px; }
     body.edit-mode canvas { cursor: crosshair !important; }
     body.edit-mode .ed-obj-selected { cursor: move !important; }
     #editor-panel .ed-decor-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 5px;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 4px;
+      max-height: 52vh;
+      overflow-y: auto;
+      padding-right: 4px;
     }
-    #editor-panel .ed-decor-grid .ed-add-btn { margin-bottom: 0; font-size: 0.7rem; padding: 6px 8px; }
+    #editor-panel .ed-decor-grid .ed-add-btn { margin-bottom: 0; font-size: 0.62rem; padding: 5px 6px; }
+    #editor-panel .ed-rug-color-row {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;
+    }
+    #editor-panel .ed-rug-color-row input[type="color"] {
+      width: 44px; height: 28px; padding: 0; border: 1px solid rgba(232,213,163,0.25);
+      border-radius: 3px; background: transparent; cursor: pointer;
+    }
+    #editor-panel .ed-rug-presets {
+      display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;
+    }
+    #editor-panel .ed-rug-presets button {
+      width: 22px; height: 22px; border-radius: 3px; border: 1px solid rgba(232,213,163,0.2);
+      cursor: pointer; padding: 0;
+    }
   `;
   document.head.appendChild(style);
   document.body.classList.add('edit-mode');
@@ -213,9 +230,25 @@ function initEditor() {
         <button class="ed-add-btn" data-ed-prop="plant"><div class="swatch" style="background:#2d5a28"></div>Plant</button>
         <button class="ed-add-btn" data-ed-prop="rug"><div class="swatch" style="background:#7a3020"></div>Rug</button>
         <button class="ed-add-btn" data-ed-prop="globe"><div class="swatch" style="background:#1a4080"></div>Globe</button>
-        <button class="ed-add-btn" data-ed-prop="light"><div class="swatch" style="background:#d8c8a0"></div>Light</button>
+        <button class="ed-add-btn" data-ed-prop="light"><div class="swatch" style="background:#d8c8a0"></div>Floor lamp</button>
         <button class="ed-add-btn" data-ed-prop="candle"><div class="swatch" style="background:#e8d08a"></div>Candle</button>
-        <button class="ed-add-btn" data-ed-prop="bookStack"><div class="swatch" style="background:#503070"></div>Book stack</button>
+        <button class="ed-add-btn" data-ed-prop="bookStack"><div class="swatch" style="background:#503070"></div>Books</button>
+        <button class="ed-add-btn" data-ed-prop="vase"><div class="swatch" style="background:#9a8a7a"></div>Vase</button>
+        <button class="ed-add-btn" data-ed-prop="bench"><div class="swatch" style="background:#4a3218"></div>Bench</button>
+        <button class="ed-add-btn" data-ed-prop="stool"><div class="swatch" style="background:#5a3820"></div>Stool</button>
+        <button class="ed-add-btn" data-ed-prop="clock"><div class="swatch" style="background:#3d2810"></div>Clock</button>
+        <button class="ed-add-btn" data-ed-prop="painting"><div class="swatch" style="background:#6a5040"></div>Painting</button>
+        <button class="ed-add-btn" data-ed-prop="statue"><div class="swatch" style="background:#8a8a88"></div>Statue</button>
+        <button class="ed-add-btn" data-ed-prop="basket"><div class="swatch" style="background:#7a6040"></div>Basket</button>
+        <button class="ed-add-btn" data-ed-prop="cushion"><div class="swatch" style="background:#6a4070"></div>Cushion</button>
+        <button class="ed-add-btn" data-ed-prop="sideTable"><div class="swatch" style="background:#4a3018"></div>Side table</button>
+        <button class="ed-add-btn" data-ed-prop="deskLamp"><div class="swatch" style="background:#f0e8d8"></div>Desk lamp</button>
+        <button class="ed-add-btn" data-ed-prop="lectern"><div class="swatch" style="background:#3d2810"></div>Lectern</button>
+        <button class="ed-add-btn" data-ed-prop="barrel"><div class="swatch" style="background:#5a3a18"></div>Barrel</button>
+        <button class="ed-add-btn" data-ed-prop="mirror"><div class="swatch" style="background:#a8c0d0"></div>Mirror</button>
+        <button class="ed-add-btn" data-ed-prop="pedestal"><div class="swatch" style="background:#c8c4c0"></div>Pedestal</button>
+        <button class="ed-add-btn" data-ed-prop="bust"><div class="swatch" style="background:#9a9894"></div>Bust</button>
+        <button class="ed-add-btn" data-ed-prop="cart"><div class="swatch" style="background:#4a3218"></div>Cart</button>
       </div>
     </div>
 
@@ -402,6 +435,9 @@ function editorRenderProps() {
   const title = editorSelectedType === 'prop'
     ? `${editorSelectedPropKind} Â· ${editorSelectedPropId}`
     : editorSelectedType;
+  const rugHex = editorSelectedType === 'prop' && editorSelectedPropKind === 'rug'
+    ? editorGetRugColorHex(editorSelectedObject)
+    : '#7a3020';
 
   el.innerHTML = `
     <div class="ed-selected-name">${title}</div>
@@ -427,6 +463,23 @@ function editorRenderProps() {
       <span class="ed-prop-label">Angle</span>
       <input class="ed-prop-input" id="ed-rot-deg" type="number" step="5" value="${rDeg}" />
     </div>
+    ${editorSelectedType === 'prop' && editorSelectedPropKind === 'rug' ? `
+    <div class="ed-label" style="margin-top:10px;margin-bottom:6px;">Rug colour</div>
+    <div class="ed-rug-color-row">
+      <input type="color" id="ed-rug-color" value="${rugHex}" />
+      <input class="ed-prop-input" id="ed-rug-hex" type="text" value="${rugHex}" style="flex:1;min-width:0" />
+    </div>
+    <div class="ed-rug-presets">
+      <button type="button" class="ed-rug-preset" data-hex="#7a3020" style="background:#7a3020" title="Wine"></button>
+      <button type="button" class="ed-rug-preset" data-hex="#1e3a5f" style="background:#1e3a5f" title="Navy"></button>
+      <button type="button" class="ed-rug-preset" data-hex="#2d4a3a" style="background:#2d4a3a" title="Forest"></button>
+      <button type="button" class="ed-rug-preset" data-hex="#5c4030" style="background:#5c4030" title="Umber"></button>
+      <button type="button" class="ed-rug-preset" data-hex="#8b3a5c" style="background:#8b3a5c" title="Rose"></button>
+      <button type="button" class="ed-rug-preset" data-hex="#c4a574" style="background:#c4a574" title="Sand"></button>
+      <button type="button" class="ed-rug-preset" data-hex="#3a3a38" style="background:#3a3a38" title="Charcoal"></button>
+      <button type="button" class="ed-rug-preset" data-hex="#4a1818" style="background:#4a1818" title="Burgundy"></button>
+    </div>
+    ` : ''}
     ${editorSelectedType === 'shelf' ? `<button class="ed-delete-btn" id="ed-delete-btn">Remove shelf</button>` : ''}
     ${editorSelectedType === 'prop' ? `<button class="ed-delete-btn" id="ed-delete-prop-btn">Remove this decor</button>` : ''}
   `;
@@ -455,6 +508,31 @@ function editorRenderProps() {
   if (delBtn) delBtn.addEventListener('click', editorDeleteSelected);
   const delPropBtn = document.getElementById('ed-delete-prop-btn');
   if (delPropBtn) delPropBtn.addEventListener('click', editorDeleteSelectedProp);
+
+  if (editorSelectedType === 'prop' && editorSelectedPropKind === 'rug') {
+    const colorIn = document.getElementById('ed-rug-color');
+    const hexIn = document.getElementById('ed-rug-hex');
+    if (colorIn && hexIn) {
+      const syncPickerToHex = () => {
+        editorApplyRugColor(editorSelectedObject, colorIn.value);
+        hexIn.value = editorGetRugColorHex(editorSelectedObject);
+      };
+      const syncHexToPicker = () => {
+        editorApplyRugColor(editorSelectedObject, hexIn.value);
+        colorIn.value = editorGetRugColorHex(editorSelectedObject);
+      };
+      colorIn.addEventListener('input', syncPickerToHex);
+      hexIn.addEventListener('change', syncHexToPicker);
+      document.querySelectorAll('.ed-rug-preset').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const h = btn.getAttribute('data-hex');
+          editorApplyRugColor(editorSelectedObject, h);
+          colorIn.value = editorGetRugColorHex(editorSelectedObject);
+          hexIn.value = editorGetRugColorHex(editorSelectedObject);
+        });
+      });
+    }
+  }
 }
 
 function editorRotate(delta) {
@@ -512,26 +590,62 @@ function editorAddShelf() {
 }
 
 function editorGatherPropsConfig() {
-  return propInstances.map(({ id, group: g }) => ({
-    id,
-    kind: g.userData.propKind,
-    x: g.position.x,
-    z: g.position.z,
-    y: g.position.y,
-    rotY: g.rotation ? g.rotation.y : 0,
-  }));
+  return propInstances.map(({ id, group: g }) => {
+    const entry = {
+      id,
+      kind: g.userData.propKind,
+      x: g.position.x,
+      z: g.position.z,
+      y: g.position.y,
+      rotY: g.rotation ? g.rotation.y : 0,
+    };
+    if (g.userData.propKind === 'rug' && g.userData.rugColor) {
+      entry.color = g.userData.rugColor;
+    }
+    return entry;
+  });
+}
+
+function editorNormalizeHexColor(s) {
+  let t = String(s || '').trim();
+  if (!t.startsWith('#')) t = '#' + t.replace(/^#/, '');
+  if (t.length === 4 && t[1] !== undefined) {
+    t = '#' + t[1] + t[1] + t[2] + t[2] + t[3] + t[3];
+  }
+  const n = parseInt(t.slice(1), 16);
+  if (Number.isNaN(n)) return '#7a3020';
+  return '#' + n.toString(16).padStart(6, '0');
+}
+
+function editorGetRugColorHex(group) {
+  if (group.userData.rugColor) return editorNormalizeHexColor(group.userData.rugColor);
+  return '#7a3020';
+}
+
+function editorApplyRugColor(group, hexStr) {
+  const hex = editorNormalizeHexColor(hexStr);
+  group.userData.rugColor = hex;
+  const num = parsePropHexColor(hex);
+  group.traverse(child => {
+    if (child.isMesh && child.userData.isRugSurface && child.material && child.material.color) {
+      child.material.color.setHex(num);
+    }
+  });
 }
 
 function editorAddProp(kind) {
   if (!PROP_DEFAULTS[kind]) return;
   const list = editorGatherPropsConfig();
-  list.push({
+  const d = PROP_DEFAULTS[kind];
+  const entry = {
     kind,
     x: 0,
     z: 0,
-    y: PROP_DEFAULTS[kind].y,
+    y: d.y,
     rotY: 0,
-  });
+  };
+  if (kind === 'rug' && d.color !== undefined) entry.color = d.color;
+  list.push(entry);
   buildProps(list);
   editorSelect(null);
 }
@@ -612,14 +726,18 @@ function editorBuildJSON() {
     ? { x: parseFloat(deskGroup.position.x.toFixed(2)), z: parseFloat(deskGroup.position.z.toFixed(2)) }
     : { x: 0, z: 6 };
 
-  const props = editorGatherPropsConfig().map(entry => ({
-    id:   entry.id,
-    kind: entry.kind,
-    x:    parseFloat(entry.x.toFixed(2)),
-    z:    parseFloat(entry.z.toFixed(2)),
-    y:    parseFloat(entry.y.toFixed(2)),
-    rotY: parseFloat(entry.rotY.toFixed(4)),
-  }));
+  const props = editorGatherPropsConfig().map(entry => {
+    const row = {
+      id:   entry.id,
+      kind: entry.kind,
+      x:    parseFloat(entry.x.toFixed(2)),
+      z:    parseFloat(entry.z.toFixed(2)),
+      y:    parseFloat(entry.y.toFixed(2)),
+      rotY: parseFloat(entry.rotY.toFixed(4)),
+    };
+    if (entry.color) row.color = entry.color;
+    return row;
+  });
 
   return JSON.stringify({ shelves, desk, props }, null, 2);
 }
@@ -633,7 +751,7 @@ function editorCopyJSON() {
   }).catch(() => {
     // Fallback: show in a textarea
     const ta = document.createElement('textarea');
-    ta.style.cssText = 'position:fixed;top:20px;left:20px;width:calc(100%-320px);height:200px;z-index:999;background:#1a1005;color:#e8d5a3;font-family:monospace;font-size:12px;border:1px solid #a08050;padding:10px;';
+    ta.style.cssText = 'position:fixed;top:20px;left:20px;width:calc(100% - 340px);height:200px;z-index:999;background:#1a1005;color:#e8d5a3;font-family:monospace;font-size:12px;border:1px solid #a08050;padding:10px;';
     ta.value = json;
     document.body.appendChild(ta);
     ta.select();
