@@ -84,6 +84,7 @@ function handleClick() {
   bookData.pickupStartQuat = bookData.mesh.quaternion.clone();
 
   heldBook = bookData;
+  if (window.AudioFX) window.AudioFX.play('pickup');
   heldInfoEl.classList.add('visible');
   heldNameEl.textContent = bookData.repo.name;
 }

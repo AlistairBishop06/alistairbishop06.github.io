@@ -20,6 +20,7 @@
     'scripts/12-checkout.js',
     'scripts/13-repos.js',
     'scripts/14-render.js',
+    'scripts/16-audio.js',
     'scripts/15-editor.js',
   ];
 
@@ -37,4 +38,3 @@
 
   chain.catch(err => console.error(err));
 })();
-

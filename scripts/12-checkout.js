@@ -8,6 +8,7 @@ function handleCheckout() {
 
   const dist = yawObj.position.distanceTo(DESK_POS);
   if (dist <= DESK_INTERACT_DISTANCE) {
+    if (window.AudioFX) window.AudioFX.play('checkout');
     window.open(heldBook.repo.html_url, '_blank');
     returnHeldBook();
   } else {
@@ -25,6 +26,7 @@ function returnHeldBook() {
   mesh.rotation.copy(heldBook.originalRotation);
   heldBook.isHeld = false; heldBook.pickupPhase = null;
   heldBook = null; heldBookTime = 0;
+  if (window.AudioFX) window.AudioFX.play('return');
   heldInfoEl.classList.remove('visible');
   deskPromptEl.classList.remove('visible');
 }

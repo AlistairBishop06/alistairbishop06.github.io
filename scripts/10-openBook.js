@@ -926,6 +926,7 @@ function flipPage(dir) {
   if (flipState) return;
   const next = currentPage + dir * 2;
   if (next < 0 || next >= pageChunks.length) return;
+  if (window.AudioFX) window.AudioFX.play('page');
   flipState = { dir, t: 0, fromPage: currentPage };
 }
 
@@ -946,6 +947,7 @@ async function openBook(bookData) {
   if (bookData.pickupPhase !== 'held') return;
   openBookData = bookData;
   bookOpen     = true;
+  if (window.AudioFX) window.AudioFX.play('open');
   pageTextureCache = new Map();
   pageChunks   = buildBookPages(bookData.repo, null, null);
   currentPage  = 0;
@@ -967,6 +969,7 @@ async function openBook(bookData) {
 function closeBook() {
   if (!bookOpen) return;
   bookOpen = false;
+  if (window.AudioFX) window.AudioFX.play('close');
   if (pageGroup) { camera.remove(pageGroup); pageGroup = null; }
   if (openBookData) openBookData.mesh.visible = true;
   openBookData = null; flipState = null;
@@ -997,12 +1000,16 @@ const moveDir = new THREE.Vector3();
 const clock   = new THREE.Clock();
 
 function updateMovement(dt) {
-  if (bookOpen) return;
+  if (bookOpen) {
+    if (window.AudioFX) window.AudioFX.setMoving(false, 0);
+    return;
+  }
   moveDir.set(0, 0, 0);
   if (keys['KeyW']) moveDir.z -= 1;
   if (keys['KeyS']) moveDir.z += 1;
   if (keys['KeyA']) moveDir.x -= 1;
   if (keys['KeyD']) moveDir.x += 1;
+  if (window.AudioFX) window.AudioFX.setMoving(moveDir.length() > 0 && pointerLocked && !EDIT_MODE, 1);
 
   if (EDIT_MODE) {
     if (moveDir.length() > 0) {

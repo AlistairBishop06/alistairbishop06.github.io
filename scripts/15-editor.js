@@ -793,6 +793,7 @@ async function init() {
 
   enterBtn.addEventListener('click', () => {
     overlayEl.classList.add('hidden');
+    if (window.AudioFX) window.AudioFX.init();
     renderer.domElement.requestPointerLock();
   });
 
