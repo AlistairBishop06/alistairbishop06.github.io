@@ -13,8 +13,8 @@
 const GITHUB_USER          = 'AlistairBishop06';
 const PLAYER_SPEED         = 6;
 const PLAYER_HEIGHT        = 1.7;
-const BOOK_PICKUP_DISTANCE = 4.0;
-const DESK_INTERACT_DISTANCE = 3.5;
+const BOOK_PICKUP_DISTANCE = 2;
+const DESK_INTERACT_DISTANCE = 3;
 const EDIT_MODE            = new URLSearchParams(location.search).has('edit');
 const MAX_COMMITS_APPENDIX = 2000;
 
