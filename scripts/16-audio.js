@@ -19,8 +19,18 @@
       if (!Ctx) return false;
       this.ctx = new Ctx();
       this.master = this.ctx.createGain();
-      this.master.gain.value = 0.55;
-      this.master.connect(this.ctx.destination);
+      this.master.gain.value = 0.8;
+
+      // Gentle compressor to keep "clicky" sounds audible without clipping.
+      const comp = this.ctx.createDynamicsCompressor();
+      comp.threshold.value = -14;
+      comp.knee.value = 24;
+      comp.ratio.value = 2.0;
+      comp.attack.value = 0.01;
+      comp.release.value = 0.12;
+
+      this.master.connect(comp);
+      comp.connect(this.ctx.destination);
       this.noiseBuf = this._makeNoiseBuffer(1.0);
       this.enabled = true;
 
@@ -53,11 +63,24 @@
       // Candle crackle (only if candles exist)
       const hasCandles = (typeof propInstances !== 'undefined')
         && Array.isArray(propInstances)
-        && propInstances.some(p => p?.group?.userData?.propKind === 'candle');
+        && propInstances.some(p => {
+          const g = p?.group;
+          if (!g) return false;
+          if (g.userData?.propKind === 'candle') return true;
+          let found = false;
+          try {
+            g.traverse?.(child => {
+              if (found) return;
+              if (child?.isPointLight && child.userData?.candleFlame) found = true;
+            });
+          } catch (_) {}
+          return found;
+        });
       if (hasCandles) {
         this.crackleT -= dt;
         if (this.crackleT <= 0) {
-          this.crackleT = 0.12 + Math.random() * 0.55;
+          // Frequent, subtle crackles.
+          this.crackleT = 0.06 + Math.random() * 0.22;
           this._candleCrackle();
         }
       } else {
@@ -240,31 +263,38 @@
     },
 
     _candleCrackle() {
-      const { out } = this._noiseSource(0.03 + Math.random() * 0.05, 0.16);
-      const hp = this._filter('highpass', 1200 + Math.random() * 1500, 0.8);
-      const eg = this._envGain(0.2, 0.001, 0.06);
+      const { out } = this._noiseSource(0.03 + Math.random() * 0.06, 0.28);
+      const hp = this._filter('highpass', 900 + Math.random() * 2200, 0.85);
+      const bp = this._filter('bandpass', 2200 + Math.random() * 1000, 0.7);
+      const eg = this._envGain(0.35, 0.001, 0.07);
       out.connect(hp);
-      hp.connect(eg);
-      this._connectToMaster(eg, 0.12);
+      hp.connect(bp);
+      bp.connect(eg);
+      this._connectToMaster(eg, 0.22);
+
+      // Occasional tiny "pop" to read as crackle on small speakers.
+      if (Math.random() < 0.35) {
+        this._pluck(380 + Math.random() * 140, 0.03, 0.012);
+      }
     },
 
     _clockTick() {
       const t = this._now();
-      // tick
-      const o = this.ctx.createOscillator();
-      o.type = 'square';
-      o.frequency.setValueAtTime(3200, t);
-      const eg = this._envGain(0.03, 0.001, 0.025);
-      o.connect(eg);
-      this._connectToMaster(eg, 1);
-      o.start(t);
-      o.stop(t + 0.06);
+      // Clicky "tick" from filtered noise + tiny body thump.
+      const { out } = this._noiseSource(0.02, 0.35);
+      const bp = this._filter('bandpass', 2800, 0.9);
+      const eg = this.ctx.createGain();
+      eg.gain.setValueAtTime(0.0001, t);
+      eg.gain.linearRampToValueAtTime(0.12, t + 0.004);
+      eg.gain.linearRampToValueAtTime(0.0001, t + 0.05);
+      out.connect(bp);
+      bp.connect(eg);
+      this._connectToMaster(eg, 0.55);
 
-      // subtle tock body
-      this._pluck(220, 0.05, 0.015);
+      // subtle "tock" body
+      this._pluck(210 + Math.random() * 10, 0.06, 0.022);
     },
   };
 
   window.AudioFX = AudioFX;
 })();
-

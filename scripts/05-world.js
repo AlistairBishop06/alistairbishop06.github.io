@@ -450,7 +450,79 @@ function buildPropInstance(kind, c, id) {
     }
     case 'clock': {
       const wood = new THREE.MeshLambertMaterial({ color: 0x3d2810 });
-      const faceMat = new THREE.MeshLambertMaterial({ color: 0xe8e0d0 });
+
+      const faceCanvas = document.createElement('canvas');
+      faceCanvas.width = 256;
+      faceCanvas.height = 256;
+      const fctx = faceCanvas.getContext('2d');
+
+      const drawClockFace = () => {
+        const W = 256, H = 256;
+        const cx = W / 2, cy = H / 2;
+        const r = 104;
+
+        fctx.clearRect(0, 0, W, H);
+        fctx.fillStyle = '#efe6d6';
+        fctx.beginPath();
+        fctx.arc(cx, cy, r + 14, 0, Math.PI * 2);
+        fctx.fill();
+
+        const rimGrad = fctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, r + 14);
+        rimGrad.addColorStop(0, 'rgba(255,255,255,0.35)');
+        rimGrad.addColorStop(1, 'rgba(0,0,0,0.18)');
+        fctx.fillStyle = rimGrad;
+        fctx.beginPath();
+        fctx.arc(cx, cy, r + 14, 0, Math.PI * 2);
+        fctx.fill();
+
+        fctx.fillStyle = '#f6efdf';
+        fctx.beginPath();
+        fctx.arc(cx, cy, r + 2, 0, Math.PI * 2);
+        fctx.fill();
+
+        // Tick marks
+        for (let i = 0; i < 60; i++) {
+          const a = (i / 60) * Math.PI * 2;
+          const isHour = i % 5 === 0;
+          const inner = isHour ? r - 16 : r - 10;
+          const outer = r;
+          const x0 = cx + Math.sin(a) * inner;
+          const y0 = cy - Math.cos(a) * inner;
+          const x1 = cx + Math.sin(a) * outer;
+          const y1 = cy - Math.cos(a) * outer;
+          fctx.strokeStyle = isHour ? 'rgba(40,20,10,0.55)' : 'rgba(40,20,10,0.25)';
+          fctx.lineWidth = isHour ? 3 : 1.5;
+          fctx.beginPath();
+          fctx.moveTo(x0, y0);
+          fctx.lineTo(x1, y1);
+          fctx.stroke();
+        }
+
+        // Numbers
+        fctx.fillStyle = 'rgba(30,15,8,0.82)';
+        fctx.font = '700 22px Georgia, serif';
+        fctx.textAlign = 'center';
+        fctx.textBaseline = 'middle';
+        for (let n = 1; n <= 12; n++) {
+          const a = (n / 12) * Math.PI * 2;
+          const rr = r - 34;
+          const x = cx + Math.sin(a) * rr;
+          const y = cy - Math.cos(a) * rr;
+          fctx.fillText(String(n), x, y);
+        }
+
+        // Center pin
+        fctx.fillStyle = 'rgba(40,20,10,0.7)';
+        fctx.beginPath();
+        fctx.arc(cx, cy, 5, 0, Math.PI * 2);
+        fctx.fill();
+      };
+
+      drawClockFace();
+      const faceTex = new THREE.CanvasTexture(faceCanvas);
+      if (renderer?.capabilities) faceTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      const faceMat = new THREE.MeshLambertMaterial({ map: faceTex, color: 0xffffff });
+
       const grp = new THREE.Group();
       const base = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.08, 0.35), wood);
       base.position.y = 0.04;
@@ -467,12 +539,36 @@ function buildPropInstance(kind, c, id) {
       const rim = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.02, 8, 24), wood);
       rim.position.set(0, 1.05, 0.06);
       grp.add(rim);
-      const hand = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.14, 0.01), wood);
-      hand.position.set(0, 1.08, 0.09);
-      grp.add(hand);
+
+      const hands = new THREE.Group();
+      hands.position.set(0, 1.05, 0.095);
+      grp.add(hands);
+
+      const makeHand = (len, w, color, zOff = 0) => {
+        const mat = new THREE.MeshLambertMaterial({ color });
+        const geo = new THREE.BoxGeometry(w, len, 0.01);
+        geo.translate(0, len / 2, zOff);
+        const m = new THREE.Mesh(geo, mat);
+        m.castShadow = true;
+        return m;
+      };
+
+      const hourHand = makeHand(0.095, 0.02, 0x3d2810, 0);
+      const minuteHand = makeHand(0.14, 0.014, 0x3d2810, 0.0005);
+      const secondHand = makeHand(0.155, 0.007, 0x8b2020, 0.001);
+      hands.add(hourHand);
+      hands.add(minuteHand);
+      hands.add(secondHand);
+
+      const centerPin = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.01, 10), wood);
+      centerPin.rotation.x = Math.PI / 2;
+      centerPin.position.set(0, 1.05, 0.105);
+      grp.add(centerPin);
+
       grp.position.set(c.x, c.y, c.z);
       grp.rotation.y = c.rotY;
       tagPropGroup(grp, 'clock', id);
+      grp.userData.clockHands = { hourHand, minuteHand, secondHand };
       scene.add(grp);
       propInstances.push({ id, group: grp });
       break;

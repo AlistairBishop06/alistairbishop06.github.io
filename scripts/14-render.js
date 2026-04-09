@@ -26,6 +26,27 @@ function animate() {
     });
   });
 
+  // Real-time clock hands (local time)
+  propInstances.forEach(({ group }) => {
+    if (group.userData.propKind !== 'clock') return;
+    const hands = group.userData.clockHands;
+    if (!hands) return;
+
+    const d = new Date();
+    const ms = d.getMilliseconds();
+    const s = d.getSeconds() + ms / 1000;
+    const m = d.getMinutes() + s / 60;
+    const h = (d.getHours() % 12) + m / 60;
+
+    const secA = (s / 60) * Math.PI * 2;
+    const minA = (m / 60) * Math.PI * 2;
+    const hourA = (h / 12) * Math.PI * 2;
+
+    if (hands.secondHand) hands.secondHand.rotation.z = -secA;
+    if (hands.minuteHand) hands.minuteHand.rotation.z = -minA;
+    if (hands.hourHand) hands.hourHand.rotation.z = -hourA;
+  });
+
   if (EDIT_MODE) editorTick();
 
   renderer.render(scene, camera);
