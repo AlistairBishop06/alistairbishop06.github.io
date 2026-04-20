@@ -9,7 +9,6 @@
     moving: false,
     moveIntensity: 0,
     stepT: 0,
-    crackleT: 0,
     tickT: 0,
     noiseBuf: null,
 
@@ -60,33 +59,6 @@
         this.stepT = Math.min(this.stepT, 0.08);
       }
 
-      // Candle crackle (only if candles exist)
-      const hasCandles = (typeof propInstances !== 'undefined')
-        && Array.isArray(propInstances)
-        && propInstances.some(p => {
-          const g = p?.group;
-          if (!g) return false;
-          if (g.userData?.propKind === 'candle') return true;
-          let found = false;
-          try {
-            g.traverse?.(child => {
-              if (found) return;
-              if (child?.isPointLight && child.userData?.candleFlame) found = true;
-            });
-          } catch (_) {}
-          return found;
-        });
-      if (hasCandles) {
-        this.crackleT -= dt;
-        if (this.crackleT <= 0) {
-          // Frequent, subtle crackles.
-          this.crackleT = 0.06 + Math.random() * 0.22;
-          this._candleCrackle();
-        }
-      } else {
-        this.crackleT = 0.6;
-      }
-
       // Clock tick (only if clock exists)
       const hasClock = (typeof propInstances !== 'undefined')
         && Array.isArray(propInstances)
@@ -111,6 +83,7 @@
         case 'open':     return this._bookOpen();
         case 'close':    return this._bookClose();
         case 'page':     return this._pageFlip();
+        case 'pageLand': return this._pageLand();
         case 'checkout': return this._checkout();
         case 'return':   return this._returnBook();
         default: return;
@@ -199,12 +172,29 @@
     },
 
     _pageFlip() {
-      const { out } = this._noiseSource(0.16, 0.18);
-      const bp = this._filter('bandpass', 1100, 0.9);
-      const eg = this._envGain(0.25, 0.004, 0.18);
+      const t0 = this._now();
+      // Paper rustle (filtered noise sweep)
+      const { out } = this._noiseSource(0.22, 0.16);
+      const bp = this._filter('bandpass', 900, 0.85);
+      bp.frequency.setValueAtTime(700, t0);
+      bp.frequency.exponentialRampToValueAtTime(2200, t0 + 0.12);
+      const eg = this._envGain(0.32, 0.006, 0.2);
       out.connect(bp);
       bp.connect(eg);
-      this._connectToMaster(eg, 0.22);
+      this._connectToMaster(eg, 0.26);
+      // Soft "lift" tone
+      this._pluck(220 + Math.random() * 30, 0.07, 0.045);
+    },
+
+    _pageLand() {
+      const t0 = this._now();
+      const { out } = this._noiseSource(0.08, 0.12);
+      const lp = this._filter('lowpass', 1400, 0.75);
+      const eg = this._envGain(0.22, 0.002, 0.1);
+      out.connect(lp);
+      lp.connect(eg);
+      this._connectToMaster(eg, 0.2);
+      this._pluck(95 + Math.random() * 12, 0.06, 0.055);
     },
 
     _pickup() {
@@ -260,22 +250,6 @@
       lp.connect(eg);
       this._connectToMaster(eg, 0.2);
       this._pluck(125, 0.1, 0.05);
-    },
-
-    _candleCrackle() {
-      const { out } = this._noiseSource(0.03 + Math.random() * 0.06, 0.28);
-      const hp = this._filter('highpass', 900 + Math.random() * 2200, 0.85);
-      const bp = this._filter('bandpass', 2200 + Math.random() * 1000, 0.7);
-      const eg = this._envGain(0.35, 0.001, 0.07);
-      out.connect(hp);
-      hp.connect(bp);
-      bp.connect(eg);
-      this._connectToMaster(eg, 0.22);
-
-      // Occasional tiny "pop" to read as crackle on small speakers.
-      if (Math.random() < 0.35) {
-        this._pluck(380 + Math.random() * 140, 0.03, 0.012);
-      }
     },
 
     _clockTick() {

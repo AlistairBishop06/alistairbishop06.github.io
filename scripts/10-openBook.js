@@ -8,7 +8,7 @@ let currentPage  = 0;
 let pageChunks   = [];
 let flipState    = null;
 let pageTextureCache = new Map(); // pageIndex -> THREE.Texture
-const FLIP_SPEED = 3.5;
+const FLIP_DURATION_SEC = 0.52;
 const PAGE_W     = 0.38;
 const PAGE_H     = 0.52;
 const PAGE_GAP   = 0.005;
@@ -877,8 +877,16 @@ function buildOpenBook(bookData) {
   renderPageSpread(bookData);
 }
 
-function renderPageSpread(bookData) {
-  while (pageGroup.children.length) pageGroup.remove(pageGroup.children[0]);
+function renderPageSpread(bookData, opts = {}) {
+  const omitLeft = !!opts.omitLeft;
+  const omitRight = !!opts.omitRight;
+  const preserveFlipLeaf = !!opts.preserveFlipLeaf;
+
+  for (let i = pageGroup.children.length - 1; i >= 0; i--) {
+    const ch = pageGroup.children[i];
+    if (preserveFlipLeaf && ch.userData && ch.userData.isFlipLeaf) continue;
+    pageGroup.remove(ch);
+  }
 
   const chunks   = pageChunks;
   const leftIdx  = currentPage;
@@ -906,9 +914,73 @@ function renderPageSpread(bookData) {
     pageGroup.add(plane);
   };
 
-  makePagePlane(leftIdx,  -PAGE_W/2 - PAGE_GAP);
-  makePagePlane(rightIdx,  PAGE_W/2 + PAGE_GAP);
+  if (!omitLeft) makePagePlane(leftIdx,  -PAGE_W/2 - PAGE_GAP);
+  if (!omitRight) makePagePlane(rightIdx,  PAGE_W/2 + PAGE_GAP);
   updatePageHUD();
+}
+
+function buildFlipLeafGroup(bookData, dir) {
+  const pw = PAGE_W - 0.01;
+  const ph = PAGE_H - 0.01;
+  const thick = 0.004;
+  const chunks = pageChunks;
+
+  let pivotX;
+  let offsetX;
+  if (dir > 0) {
+    const cx = PAGE_W / 2 + PAGE_GAP;
+    pivotX = cx - pw / 2;
+    offsetX = pw / 2;
+  } else {
+    const cx = -PAGE_W / 2 - PAGE_GAP;
+    pivotX = cx + pw / 2;
+    offsetX = -pw / 2;
+  }
+
+  let frontIdx;
+  let backIdx;
+  if (dir > 0) {
+    frontIdx = currentPage + 1;
+    backIdx = currentPage + 2;
+  } else {
+    frontIdx = currentPage;
+    backIdx = currentPage - 1;
+  }
+
+  const cream = () => new THREE.MeshLambertMaterial({ color: 0xf2e8d0 });
+  // Reuse cached CanvasTextures from getPageTexture — do not clone/dispose them or static pages break.
+  const frontMat = frontIdx < chunks.length && frontIdx >= 0
+    ? new THREE.MeshLambertMaterial({
+        map: getPageTexture(bookData, frontIdx),
+        side: THREE.FrontSide,
+      })
+    : cream();
+  const backMat = backIdx >= 0 && backIdx < chunks.length
+    ? new THREE.MeshLambertMaterial({
+        map: getPageTexture(bookData, backIdx),
+        side: THREE.FrontSide,
+      })
+    : cream();
+
+  const edgeMat = new THREE.MeshLambertMaterial({ color: 0xe8dcc8 });
+  const mats = [edgeMat, edgeMat, edgeMat, edgeMat, frontMat, backMat];
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(pw, ph, thick), mats);
+  mesh.position.set(offsetX, 0, 0.014);
+
+  const pivot = new THREE.Group();
+  pivot.position.set(pivotX, 0, 0.011);
+  pivot.add(mesh);
+  pivot.userData.isFlipLeaf = true;
+  return pivot;
+}
+
+function disposeFlipLeafPivot(pivot) {
+  const mesh = pivot && pivot.children[0];
+  if (!mesh || !mesh.geometry) return;
+  mesh.geometry.dispose();
+  // Leaf front/back materials share pageTextureCache maps — never dispose those here.
+  const mats = mesh.material;
+  if (Array.isArray(mats) && mats[0] && !mats[0].map) mats[0].dispose();
 }
 
 function updatePageHUD() {
@@ -923,24 +995,40 @@ function updatePageHUD() {
 }
 
 function flipPage(dir) {
-  if (flipState) return;
+  if (flipState || !pageGroup || !openBookData) return;
   const next = currentPage + dir * 2;
   if (next < 0 || next >= pageChunks.length) return;
   if (window.AudioFX) window.AudioFX.play('page');
-  flipState = { dir, t: 0, fromPage: currentPage };
+
+  renderPageSpread(openBookData, {
+    omitRight: dir > 0,
+    omitLeft: dir < 0,
+    preserveFlipLeaf: false,
+  });
+
+  const leaf = buildFlipLeafGroup(openBookData, dir);
+  pageGroup.add(leaf);
+
+  flipState = { dir, t: 0, leaf };
 }
 
 function updateFlip(dt) {
-  if (!flipState || !pageGroup) return;
-  flipState.t += dt * FLIP_SPEED;
-  pageGroup.rotation.z = Math.sin(Math.PI * Math.min(flipState.t, 1)) * 0.06 * flipState.dir;
+  if (!flipState || !pageGroup || !flipState.leaf) return;
 
-  if (flipState.t >= 0.5 && !flipState.swapped) {
-    currentPage += flipState.dir * 2;
-    renderPageSpread(openBookData);
-    flipState.swapped = true;
-  }
-  if (flipState.t >= 1) { pageGroup.rotation.z = 0; flipState = null; }
+  flipState.t += dt / FLIP_DURATION_SEC;
+  const u = Math.min(flipState.t, 1);
+  const ease = u * u * (3 - 2 * u);
+  const angle = ease * Math.PI;
+  flipState.leaf.rotation.y = flipState.dir > 0 ? -angle : angle;
+
+  if (flipState.t < 1) return;
+
+  disposeFlipLeafPivot(flipState.leaf);
+  pageGroup.remove(flipState.leaf);
+  currentPage += flipState.dir * 2;
+  renderPageSpread(openBookData);
+  flipState = null;
+  if (window.AudioFX) window.AudioFX.play('pageLand');
 }
 
 async function openBook(bookData) {
@@ -970,7 +1058,11 @@ function closeBook() {
   if (!bookOpen) return;
   bookOpen = false;
   if (window.AudioFX) window.AudioFX.play('close');
-  if (pageGroup) { camera.remove(pageGroup); pageGroup = null; }
+  if (pageGroup) {
+    if (flipState && flipState.leaf) disposeFlipLeafPivot(flipState.leaf);
+    camera.remove(pageGroup);
+    pageGroup = null;
+  }
   if (openBookData) openBookData.mesh.visible = true;
   openBookData = null; flipState = null;
   showPageHUD(false);
