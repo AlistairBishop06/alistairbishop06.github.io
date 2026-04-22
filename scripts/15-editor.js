@@ -601,12 +601,14 @@ function editorSyncShelfSlots() {
 
     group.updateWorldMatrix(true, true);
 
-    const slotX = 0;
     const slotZ = 0.03;
     const startY = CASSETTE_SHELF_BASE_H + 0.08;
 
     sd.slotIndices.forEach((slotIdx, i) => {
-      const localPos = new THREE.Vector3(slotX, startY + i * CASSETTE_SLOT_SPACING, slotZ);
+      const col = Math.floor(i / CASSETTES_PER_COL);
+      const row = i % CASSETTES_PER_COL;
+      const slotX = col === 0 ? -CASSETTE_COL_X_OFFSET : CASSETTE_COL_X_OFFSET;
+      const localPos = new THREE.Vector3(slotX, startY + row * CASSETTE_SLOT_SPACING, slotZ);
       const worldPos = localPos.clone().applyMatrix4(group.matrixWorld);
       cassetteShelfSlots[slotIdx].position.copy(worldPos);
       cassetteShelfSlots[slotIdx].rotY = group.rotation.y;
@@ -615,7 +617,7 @@ function editorSyncShelfSlots() {
     cassettes.forEach(c => {
       if (!c.isHeld && sd.slotIndices.includes(c.slotIndex)) {
         const slot = cassetteShelfSlots[c.slotIndex];
-        const h = c.mesh.userData.cassetteH ?? 0.04;
+        const h = c.mesh.userData.cassetteH ?? 0.05;
         c.mesh.position.copy(slot.position);
         c.mesh.position.y += h / 2;
         c.mesh.rotation.y = slot.rotY;
@@ -795,6 +797,7 @@ function editorBuildJSON() {
   const cassetteShelves = cassetteShelfGroups.map(sg => ({
     x:    parseFloat(sg.group.position.x.toFixed(2)),
     z:    parseFloat(sg.group.position.z.toFixed(2)),
+    y:    parseFloat(sg.group.position.y.toFixed(2)),
     rotY: parseFloat(sg.group.rotation.y.toFixed(4)),
   }));
 

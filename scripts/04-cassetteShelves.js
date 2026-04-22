@@ -5,19 +5,21 @@ const cassetteShelfSlots = [];
 const cassetteShelfObjects = [];
 
 // A cassette shelf is a single vertical stack of cassette slots.
-const CASSETTES_PER_SHELF = 7;
-const CASSETTE_SLOT_SPACING = 0.055;
-const CASSETTE_SHELF_W = 0.72;
-const CASSETTE_SHELF_D = 0.36;
+const CASSETTE_SHELF_COLS = 2;
+const CASSETTES_PER_COL = 5;
+const CASSETTE_SLOT_SPACING = 0.062;
+const CASSETTE_COL_X_OFFSET = 0.18;
+const CASSETTE_SHELF_W = 0.98;
+const CASSETTE_SHELF_D = 0.4;
 const CASSETTE_SHELF_BASE_H = 0.12;
 const CASSETTE_SHELF_BACK_H = 0.5;
 
 // { group, slotIndices, x, z, rotY }
 const cassetteShelfGroups = [];
 
-function addCassetteShelfUnit(x, z, rotY) {
+function addCassetteShelfUnit(x, z, rotY, y = 0) {
   const group = new THREE.Group();
-  group.position.set(x, 0, z);
+  group.position.set(x, y, z);
   group.rotation.y = rotY;
 
   const base = new THREE.Mesh(
@@ -50,17 +52,19 @@ function addCassetteShelfUnit(x, z, rotY) {
   });
 
   const slotIndices = [];
-  const slotX = 0;
   const slotZ = 0.03;
   const startY = CASSETTE_SHELF_BASE_H + 0.08;
 
   group.updateWorldMatrix(true, false);
-  for (let i = 0; i < CASSETTES_PER_SHELF; i++) {
-    const localPos = new THREE.Vector3(slotX, startY + i * CASSETTE_SLOT_SPACING, slotZ);
-    const worldPos = localPos.clone().applyMatrix4(group.matrixWorld);
-    const idx = cassetteShelfSlots.length;
-    cassetteShelfSlots.push({ position: worldPos, rotY });
-    slotIndices.push(idx);
+  for (let col = 0; col < CASSETTE_SHELF_COLS; col++) {
+    const slotX = col === 0 ? -CASSETTE_COL_X_OFFSET : CASSETTE_COL_X_OFFSET;
+    for (let i = 0; i < CASSETTES_PER_COL; i++) {
+      const localPos = new THREE.Vector3(slotX, startY + i * CASSETTE_SLOT_SPACING, slotZ);
+      const worldPos = localPos.clone().applyMatrix4(group.matrixWorld);
+      const idx = cassetteShelfSlots.length;
+      cassetteShelfSlots.push({ position: worldPos, rotY });
+      slotIndices.push(idx);
+    }
   }
 
   scene.add(group);
@@ -79,4 +83,3 @@ function buildCassetteShelves() {
   // Default placement: near the checkout desk area.
   addCassetteShelfUnit(2.4, 6.9, 0);
 }
-

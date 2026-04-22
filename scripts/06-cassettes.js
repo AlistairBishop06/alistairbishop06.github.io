@@ -56,9 +56,9 @@ function createCassette(repo, slotIndex, deployedUrl) {
   const tex = makeCassetteTexture(repo);
   if (renderer?.capabilities) tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
-  const cassetteW = 0.22;
-  const cassetteH = 0.04;
-  const cassetteD = 0.14;
+  const cassetteW = 0.26;
+  const cassetteH = 0.05;
+  const cassetteD = 0.16;
 
   const geo = new THREE.BoxGeometry(cassetteW, cassetteH, cassetteD);
   const mat = new THREE.MeshLambertMaterial({ map: tex, color: 0xffffff });
@@ -96,4 +96,3 @@ function createCassette(repo, slotIndex, deployedUrl) {
 function getCassetteMeshes() {
   return cassettes.filter(c => !c.isHeld).map(c => c.mesh);
 }
-

@@ -1201,7 +1201,7 @@ function buildFromLayout(layout) {
   }
 
   if (layout.cassetteShelves) {
-    layout.cassetteShelves.forEach(s => addCassetteShelfUnit(s.x, s.z, s.rotY));
+    layout.cassetteShelves.forEach(s => addCassetteShelfUnit(s.x, s.z, s.rotY, s.y ?? 0));
   } else if (typeof buildCassetteShelves === 'function') {
     buildCassetteShelves();
   }
