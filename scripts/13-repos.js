@@ -9,6 +9,8 @@ function pickRepoFields(r) {
     name: r?.name,
     description: r?.description ?? '',
     html_url: r?.html_url,
+    homepage: r?.homepage ?? '',
+    has_pages: !!r?.has_pages,
     language: r?.language ?? null,
     stargazers_count: r?.stargazers_count ?? 0,
     forks_count: r?.forks_count ?? 0,
@@ -109,6 +111,40 @@ async function fetchAndBuildBooks(progressCb) {
     if (i % 10 === 0) await new Promise(r => setTimeout(r, 0));
   }
   progressCb(1);
+
+  // Build website cassettes (only for repos with a deployed URL).
+  if (typeof createCassette === 'function' && Array.isArray(cassetteShelfSlots) && cassetteShelfSlots.length) {
+    const normalizeUrl = (s) => {
+      if (!s || typeof s !== 'string') return '';
+      const t = s.trim();
+      if (!t) return '';
+      if (/^https?:\/\//i.test(t)) return t;
+      if (/^[a-z0-9.-]+\.[a-z]{2,}([/:?#].*)?$/i.test(t)) return 'https://' + t;
+      return '';
+    };
+
+    const getDeployedUrl = (repo) => {
+      const home = normalizeUrl(repo?.homepage);
+      if (home) return home;
+      if (repo?.has_pages) {
+        const user = (typeof GITHUB_USER === 'string' && GITHUB_USER) ? GITHUB_USER : '';
+        if (!user || !repo?.name) return '';
+        const isUserPagesRepo = repo.name.toLowerCase() === `${user.toLowerCase()}.github.io`;
+        return isUserPagesRepo ? `https://${user}.github.io/` : `https://${user}.github.io/${repo.name}/`;
+      }
+      return '';
+    };
+
+    const deployedRepos = repos
+      .slice(0, count)
+      .map(r => ({ repo: r, url: getDeployedUrl(r) }))
+      .filter(x => !!x.url);
+
+    const cassetteCount = Math.min(deployedRepos.length, cassetteShelfSlots.length);
+    for (let i = 0; i < cassetteCount; i++) {
+      createCassette(deployedRepos[i].repo, i, deployedRepos[i].url);
+    }
+  }
 
   // Some repos (commonly forks) can have a null `language` field from the repos listing.
   // Fix up by querying the languages endpoint and refreshing the book textures in-place.

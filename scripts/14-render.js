@@ -10,8 +10,10 @@ function animate() {
 
   updateMovement(dt);
   updateHeldBook(dt);
+  updateHeldCassette(dt);
   updateBookTilts(dt);
   updateFlip(dt);
+  updateComputers(dt);
   if (window.AudioFX) window.AudioFX.tick(dt);
 
   if (frameCount % 2 === 0 && !bookOpen && !EDIT_MODE) updateRaycast();

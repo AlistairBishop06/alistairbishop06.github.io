@@ -33,8 +33,8 @@ function setupControls() {
   });
 
   document.addEventListener('keydown', e => {
-    if (e.code === 'KeyE')         handleCheckout();
-    if (e.code === 'KeyQ')         returnHeldBook();
+    if (e.code === 'KeyE')         handleInteractE();
+    if (e.code === 'KeyQ')         returnHeldAny();
     if (e.code === 'Escape' && bookOpen) closeBook();
     if (e.code === 'ArrowRight' && bookOpen) flipPage(1);
     if (e.code === 'ArrowLeft'  && bookOpen) flipPage(-1);
@@ -53,6 +53,8 @@ const raycaster   = new THREE.Raycaster();
 const screenCenter = new THREE.Vector2(0, 0);
 let heldBook      = null;
 let lookedAtBook  = null;
+let heldCassette = null;
+let lookedAtCassette = null;
 
 function getBookMeshes() {
   return books.filter(b => !b.isHeld).map(b => b.mesh);

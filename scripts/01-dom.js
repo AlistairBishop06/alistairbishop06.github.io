@@ -11,7 +11,9 @@ const bookInfoName     = document.getElementById('book-info-name');
 const bookInfoDesc     = document.getElementById('book-info-desc');
 const heldInfoEl       = document.getElementById('held-info');
 const heldNameEl       = document.getElementById('held-name');
+const heldActionTextEl = document.getElementById('held-action-text');
 const deskPromptEl     = document.getElementById('desk-prompt');
+const deskPromptTextEl = document.querySelector('#desk-prompt .desk-prompt-text');
 const readmeBackdrop   = document.getElementById('readme-backdrop');
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

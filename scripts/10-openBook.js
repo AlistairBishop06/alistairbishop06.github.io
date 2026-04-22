@@ -1,5 +1,5 @@
 ﻿// 3D OPEN BOOK SYSTEM
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────
 
 let bookOpen     = false;
 let openBookData = null;
@@ -916,7 +916,61 @@ function renderPageSpread(bookData, opts = {}) {
 
   if (!omitLeft) makePagePlane(leftIdx,  -PAGE_W/2 - PAGE_GAP);
   if (!omitRight) makePagePlane(rightIdx,  PAGE_W/2 + PAGE_GAP);
+
+  const fd = opts.flipDir;
+  if (fd === 1 || fd === -1) {
+    addFlipSpreadBacking();
+    if (fd === 1) {
+      // FIX: show currentPage + 2 (the new right page after flip completes)
+      const idx = currentPage + 2;
+      addFlipUnderStack(bookData, PAGE_W / 2 + PAGE_GAP, idx >= 0 && idx < chunks.length ? idx : null);
+    } else {
+      // FIX: show currentPage - 1 (the new left page after flip completes)
+      const idx = currentPage - 1;
+      addFlipUnderStack(bookData, -PAGE_W / 2 - PAGE_GAP, idx >= 0 && idx < chunks.length ? idx : null);
+    }
+  }
+
   updatePageHUD();
+}
+
+/** Full open-book paper sheet behind both sides so gaps never show the room during a flip. */
+function addFlipSpreadBacking() {
+  const w = PAGE_W * 2 + PAGE_GAP * 4;
+  const h = PAGE_H - 0.02;
+  const mat = new THREE.MeshLambertMaterial({ color: 0xd4c4b0 });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+  mesh.position.set(0, 0, 0);
+  pageGroup.add(mesh);
+}
+
+/**
+ * Next (or previous) printed page plus a few cream "stack" tiers behind the turning leaf.
+ * @param {number|null} texIdx  null → plain paper only on the top tier
+ */
+function addFlipUnderStack(bookData, xPos, texIdx) {
+  const pwTop = PAGE_W + 0.02;
+  const ph = PAGE_H - 0.01;
+  const topMat = texIdx != null
+    ? new THREE.MeshLambertMaterial({ map: getPageTexture(bookData, texIdx), side: THREE.FrontSide })
+    : new THREE.MeshLambertMaterial({ color: 0xf0e6d4 });
+  const top = new THREE.Mesh(new THREE.PlaneGeometry(pwTop, ph), topMat);
+  top.position.set(xPos, 0, 0.0063);
+  pageGroup.add(top);
+
+  const cream = (hex, z, scale) => {
+    const m = new THREE.MeshLambertMaterial({ color: hex });
+    const s = scale;
+    const p = new THREE.Mesh(
+      new THREE.PlaneGeometry((PAGE_W - 0.01) * s, (PAGE_H - 0.01) * s),
+      m
+    );
+    p.position.set(xPos, 0, z);
+    pageGroup.add(p);
+  };
+  cream(0xe4d6c4, 0.0047, 0.99);
+  cream(0xd8c8b4, 0.0033, 0.97);
+  cream(0xccbcaa, 0.0020, 0.94);
 }
 
 function buildFlipLeafGroup(bookData, dir) {
@@ -971,6 +1025,7 @@ function buildFlipLeafGroup(bookData, dir) {
   pivot.position.set(pivotX, 0, 0.011);
   pivot.add(mesh);
   pivot.userData.isFlipLeaf = true;
+  mesh.renderOrder = 4;
   return pivot;
 }
 
@@ -1004,6 +1059,7 @@ function flipPage(dir) {
     omitRight: dir > 0,
     omitLeft: dir < 0,
     preserveFlipLeaf: false,
+    flipDir: dir,
   });
 
   const leaf = buildFlipLeafGroup(openBookData, dir);
@@ -1077,16 +1133,28 @@ function showPageHUD(on) {
 
 function updateDeskProximity() {
   if (bookOpen) return;
+
+  if (heldCassette && heldCassette.pickupPhase === 'held' && !heldCassette.inUse) {
+    const comp = typeof findNearestComputer === 'function' ? findNearestComputer(yawObj.position) : null;
+    if (comp) {
+      if (deskPromptTextEl) deskPromptTextEl.innerHTML = 'Press <strong>E</strong> to play website';
+      deskPromptEl.classList.add('visible');
+      return;
+    }
+  }
+
   const dist = yawObj.position.distanceTo(DESK_POS);
-  if (dist < DESK_INTERACT_DISTANCE && heldBook && heldBook.pickupPhase === 'held')
+  if (dist < DESK_INTERACT_DISTANCE && heldBook && heldBook.pickupPhase === 'held') {
+    if (deskPromptTextEl) deskPromptTextEl.innerHTML = 'Press <strong>E</strong> to open repository';
     deskPromptEl.classList.add('visible');
-  else
+  } else {
     deskPromptEl.classList.remove('visible');
+  }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────
 // PLAYER MOVEMENT
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────
 
 const moveDir = new THREE.Vector3();
 const clock   = new THREE.Clock();
@@ -1128,4 +1196,4 @@ function updateMovement(dt) {
   yawObj.position.copy(next);
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────

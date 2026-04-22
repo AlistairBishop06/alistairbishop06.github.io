@@ -5,6 +5,7 @@
 let editorSelectedObject = null; // the Three.js Group being dragged
 let editorSelectedType   = null; // 'shelf' | 'desk' | prop key string
 let editorSelectedShelf    = null; // shelf metadata when type === 'shelf'
+let editorSelectedCassetteShelf = null; // cassette shelf metadata when type === 'cassetteShelf'
 let editorSelectedPropId   = null;
 let editorSelectedPropKind = null;
 let editorRmbLook          = false;
@@ -220,6 +221,9 @@ function initEditor() {
       <button class="ed-add-btn" id="ed-add-shelf">
         <div class="swatch" style="background:#4a2e10"></div>Shelf unit
       </button>
+      <button class="ed-add-btn" id="ed-add-cassette-shelf">
+        <div class="swatch" style="background:#2a2a2a"></div>Cassette shelf
+      </button>
     </div>
 
     <div class="ed-section">
@@ -243,6 +247,7 @@ function initEditor() {
         <button class="ed-add-btn" data-ed-prop="cushion"><div class="swatch" style="background:#6a4070"></div>Cushion</button>
         <button class="ed-add-btn" data-ed-prop="sideTable"><div class="swatch" style="background:#4a3018"></div>Side table</button>
         <button class="ed-add-btn" data-ed-prop="deskLamp"><div class="swatch" style="background:#f0e8d8"></div>Desk lamp</button>
+        <button class="ed-add-btn" data-ed-prop="computer"><div class="swatch" style="background:#2a2a2a"></div>Computer</button>
         <button class="ed-add-btn" data-ed-prop="lectern"><div class="swatch" style="background:#3d2810"></div>Lectern</button>
         <button class="ed-add-btn" data-ed-prop="barrel"><div class="swatch" style="background:#5a3a18"></div>Barrel</button>
         <button class="ed-add-btn" data-ed-prop="mirror"><div class="swatch" style="background:#a8c0d0"></div>Mirror</button>
@@ -263,6 +268,7 @@ function initEditor() {
   document.body.appendChild(panel);
 
   document.getElementById('ed-add-shelf').addEventListener('click', () => editorAddShelf());
+  document.getElementById('ed-add-cassette-shelf').addEventListener('click', () => editorAddCassetteShelf());
   panel.querySelectorAll('[data-ed-prop]').forEach(btn => {
     btn.addEventListener('click', () => editorAddProp(btn.getAttribute('data-ed-prop')));
   });
@@ -361,6 +367,7 @@ function editorPickObject(e) {
   // Collect all selectable meshes
   const candidates = [];
   shelfGroups.forEach(sg => sg.group.traverse(c => { if (c.isMesh) candidates.push(c); }));
+  cassetteShelfGroups.forEach(sg => sg.group.traverse(c => { if (c.isMesh) candidates.push(c); }));
   if (deskGroup) deskGroup.traverse(c => { if (c.isMesh) candidates.push(c); });
   propInstances.forEach(({ group: pg }) => {
     if (pg.traverse) pg.traverse(c => { if (c.isMesh) candidates.push(c); });
@@ -373,6 +380,10 @@ function editorPickObject(e) {
   const hit = hits[0].object;
 
   // Walk up to find the owning group
+  if (hit.userData.cassetteShelfGroup) {
+    const sg = cassetteShelfGroups.find(s => s.group === hit.userData.cassetteShelfGroup);
+    return { group: hit.userData.cassetteShelfGroup, type: 'cassetteShelf', cassetteShelfData: sg };
+  }
   if (hit.userData.shelfGroup) {
     const sg = shelfGroups.find(s => s.group === hit.userData.shelfGroup);
     return { group: hit.userData.shelfGroup, type: 'shelf', shelfData: sg };
@@ -417,6 +428,7 @@ function editorSelect(picked) {
   editorSelectedObject = picked ? picked.group : null;
   editorSelectedType   = picked ? picked.type  : null;
   editorSelectedShelf  = picked ? picked.shelfData : null;
+  editorSelectedCassetteShelf = picked ? picked.cassetteShelfData : null;
   editorSelectedPropId   = picked && picked.type === 'prop' ? picked.propId : null;
   editorSelectedPropKind = picked && picked.type === 'prop' ? picked.propKind : null;
   if (editorSelectedObject) editorHighlight(editorSelectedObject, true);
@@ -434,7 +446,7 @@ function editorRenderProps() {
   const rDeg = Math.round((editorSelectedObject.rotation.y * 180 / Math.PI) % 360);
   const title = editorSelectedType === 'prop'
     ? `${editorSelectedPropKind} Â· ${editorSelectedPropId}`
-    : editorSelectedType;
+    : (editorSelectedType === 'cassetteShelf' ? 'cassette shelf' : editorSelectedType);
   const rugHex = editorSelectedType === 'prop' && editorSelectedPropKind === 'rug'
     ? editorGetRugColorHex(editorSelectedObject)
     : '#7a3020';
@@ -480,7 +492,7 @@ function editorRenderProps() {
       <button type="button" class="ed-rug-preset" data-hex="#4a1818" style="background:#4a1818" title="Burgundy"></button>
     </div>
     ` : ''}
-    ${editorSelectedType === 'shelf' ? `<button class="ed-delete-btn" id="ed-delete-btn">Remove shelf</button>` : ''}
+    ${editorSelectedType === 'shelf' || editorSelectedType === 'cassetteShelf' ? `<button class="ed-delete-btn" id="ed-delete-btn">Remove</button>` : ''}
     ${editorSelectedType === 'prop' ? `<button class="ed-delete-btn" id="ed-delete-prop-btn">Remove this decor</button>` : ''}
   `;
 
@@ -544,49 +556,90 @@ function editorRotate(delta) {
 
 // After moving/rotating a shelf, recompute its world-space slot positions
 function editorSyncShelfSlots() {
-  if (editorSelectedType !== 'shelf' || !editorSelectedShelf) return;
+  if (editorSelectedType === 'shelf' && editorSelectedShelf) {
+    const group    = editorSelectedObject;
+    const sd       = editorSelectedShelf;
+    const unitW    = 3.0;
+    const baseH    = 0.2;
 
-  const group    = editorSelectedObject;
-  const sd       = editorSelectedShelf;
-  const unitW    = 3.0;
-  const baseH    = 0.2;
+    group.updateWorldMatrix(true, true);
 
-  group.updateWorldMatrix(true, true);
+    sd.slotIndices.forEach((slotIdx, i) => {
+      const row  = Math.floor(i / BOOKS_PER_SHELF);
+      const col  = i % BOOKS_PER_SHELF;
+      const shelfY     = baseH + 0.45 + row * SHELF_SPACING;
+      const slotStartX = -unitW / 2 + 0.2;
+      const slotWidth  = (unitW - 0.4) / BOOKS_PER_SHELF;
 
-  sd.slotIndices.forEach((slotIdx, i) => {
-    const row  = Math.floor(i / BOOKS_PER_SHELF);
-    const col  = i % BOOKS_PER_SHELF;
-    const shelfY     = baseH + 0.45 + row * SHELF_SPACING;
-    const slotStartX = -unitW / 2 + 0.2;
-    const slotWidth  = (unitW - 0.4) / BOOKS_PER_SHELF;
+      const localPos = new THREE.Vector3(
+        slotStartX + col * slotWidth + slotWidth / 2,
+        shelfY + SHELF_H / 2 + 0.001,
+        0
+      );
+      const worldPos = localPos.clone().applyMatrix4(group.matrixWorld);
+      shelfSlots[slotIdx].position.copy(worldPos);
+      shelfSlots[slotIdx].rotY = group.rotation.y;
+    });
 
-    const localPos = new THREE.Vector3(
-      slotStartX + col * slotWidth + slotWidth / 2,
-      shelfY + SHELF_H / 2 + 0.001,
-      0
-    );
-    const worldPos = localPos.clone().applyMatrix4(group.matrixWorld);
-    shelfSlots[slotIdx].position.copy(worldPos);
-    shelfSlots[slotIdx].rotY = group.rotation.y;
-  });
+    // Also reposition any books already placed on this shelf
+    books.forEach(b => {
+      if (!b.isHeld && sd.slotIndices.includes(b.slotIndex)) {
+        const slot = shelfSlots[b.slotIndex];
+        b.mesh.position.copy(slot.position);
+        b.mesh.position.y += b.mesh.userData.bookHeight / 2;
+        b.mesh.rotation.y  = slot.rotY;
+        b.originalPosition.copy(b.mesh.position);
+        b.originalRotation.copy(b.mesh.rotation);
+      }
+    });
+    return;
+  }
 
-  // Also reposition any books already placed on this shelf
-  books.forEach(b => {
-    if (!b.isHeld && sd.slotIndices.includes(b.slotIndex)) {
-      const slot = shelfSlots[b.slotIndex];
-      b.mesh.position.copy(slot.position);
-      b.mesh.position.y += b.mesh.userData.bookHeight / 2;
-      b.mesh.rotation.y  = slot.rotY;
-      b.originalPosition.copy(b.mesh.position);
-      b.originalRotation.copy(b.mesh.rotation);
-    }
-  });
+  if (editorSelectedType === 'cassetteShelf' && editorSelectedCassetteShelf) {
+    const group = editorSelectedObject;
+    const sd = editorSelectedCassetteShelf;
+
+    group.updateWorldMatrix(true, true);
+
+    const slotX = 0;
+    const slotZ = 0.03;
+    const startY = CASSETTE_SHELF_BASE_H + 0.08;
+
+    sd.slotIndices.forEach((slotIdx, i) => {
+      const localPos = new THREE.Vector3(slotX, startY + i * CASSETTE_SLOT_SPACING, slotZ);
+      const worldPos = localPos.clone().applyMatrix4(group.matrixWorld);
+      cassetteShelfSlots[slotIdx].position.copy(worldPos);
+      cassetteShelfSlots[slotIdx].rotY = group.rotation.y;
+    });
+
+    cassettes.forEach(c => {
+      if (!c.isHeld && sd.slotIndices.includes(c.slotIndex)) {
+        const slot = cassetteShelfSlots[c.slotIndex];
+        const h = c.mesh.userData.cassetteH ?? 0.04;
+        c.mesh.position.copy(slot.position);
+        c.mesh.position.y += h / 2;
+        c.mesh.rotation.y = slot.rotY;
+        c.mesh.userData.shelfRotY = slot.rotY;
+        c.originalPosition.copy(c.mesh.position);
+        c.originalRotation.copy(c.mesh.rotation);
+      }
+    });
+  }
 }
 
 function editorAddShelf() {
   addShelfUnit(0, 0, 0);
   editorSelect({ group: shelfGroups[shelfGroups.length - 1].group, type: 'shelf', shelfData: shelfGroups[shelfGroups.length - 1] });
   editorUpdateShelfNumbers();
+}
+
+function editorAddCassetteShelf() {
+  addCassetteShelfUnit(0, 0, 0);
+  editorSelect({
+    group: cassetteShelfGroups[cassetteShelfGroups.length - 1].group,
+    type: 'cassetteShelf',
+    cassetteShelfData: cassetteShelfGroups[cassetteShelfGroups.length - 1],
+  });
 }
 
 function editorGatherPropsConfig() {
@@ -660,21 +713,38 @@ function editorDeleteSelectedProp() {
 }
 
 function editorDeleteSelected() {
-  if (!editorSelectedObject || editorSelectedType !== 'shelf') return;
-  const sd = editorSelectedShelf;
-  // Remove books on this shelf
-  sd.slotIndices.forEach(si => {
-    const bi = books.findIndex(b => b.slotIndex === si);
-    if (bi >= 0) { scene.remove(books[bi].mesh); books.splice(bi, 1); }
-  });
-  // Free the slots
-  sd.slotIndices.forEach(si => { shelfSlots[si] = null; });
-  // Remove from scene + arrays
-  scene.remove(editorSelectedObject);
-  const idx = shelfGroups.findIndex(s => s.group === editorSelectedObject);
-  if (idx >= 0) shelfGroups.splice(idx, 1);
-  editorSelect(null);
-  editorUpdateShelfNumbers();
+  if (!editorSelectedObject) return;
+
+  if (editorSelectedType === 'shelf' && editorSelectedShelf) {
+    const sd = editorSelectedShelf;
+    // Remove books on this shelf
+    sd.slotIndices.forEach(si => {
+      const bi = books.findIndex(b => b.slotIndex === si);
+      if (bi >= 0) { scene.remove(books[bi].mesh); books.splice(bi, 1); }
+    });
+    // Free the slots
+    sd.slotIndices.forEach(si => { shelfSlots[si] = null; });
+    // Remove from scene + arrays
+    scene.remove(editorSelectedObject);
+    const idx = shelfGroups.findIndex(s => s.group === editorSelectedObject);
+    if (idx >= 0) shelfGroups.splice(idx, 1);
+    editorSelect(null);
+    editorUpdateShelfNumbers();
+    return;
+  }
+
+  if (editorSelectedType === 'cassetteShelf' && editorSelectedCassetteShelf) {
+    const sd = editorSelectedCassetteShelf;
+    sd.slotIndices.forEach(si => {
+      const ci = cassettes.findIndex(c => c.slotIndex === si);
+      if (ci >= 0) { scene.remove(cassettes[ci].mesh); cassettes.splice(ci, 1); }
+    });
+    sd.slotIndices.forEach(si => { cassetteShelfSlots[si] = null; });
+    scene.remove(editorSelectedObject);
+    const idx = cassetteShelfGroups.findIndex(s => s.group === editorSelectedObject);
+    if (idx >= 0) cassetteShelfGroups.splice(idx, 1);
+    editorSelect(null);
+  }
 }
 
 // Mouse drag in world space on the ground plane
@@ -722,6 +792,12 @@ function editorBuildJSON() {
     rotY: parseFloat(sg.group.rotation.y.toFixed(4)),
   }));
 
+  const cassetteShelves = cassetteShelfGroups.map(sg => ({
+    x:    parseFloat(sg.group.position.x.toFixed(2)),
+    z:    parseFloat(sg.group.position.z.toFixed(2)),
+    rotY: parseFloat(sg.group.rotation.y.toFixed(4)),
+  }));
+
   const desk = deskGroup
     ? { x: parseFloat(deskGroup.position.x.toFixed(2)), z: parseFloat(deskGroup.position.z.toFixed(2)) }
     : { x: 0, z: 6 };
@@ -739,7 +815,7 @@ function editorBuildJSON() {
     return row;
   });
 
-  return JSON.stringify({ shelves, desk, props }, null, 2);
+  return JSON.stringify({ shelves, cassetteShelves, desk, props }, null, 2);
 }
 
 function editorCopyJSON() {

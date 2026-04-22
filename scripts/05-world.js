@@ -84,6 +84,8 @@ function buildDesk(x = 0, z = 6) {
 
 /** @type {{ id: string, group: THREE.Object3D }[]} */
 const propInstances = [];
+/** @type {{ id: string, group: THREE.Object3D }[]} */
+const computerInstances = [];
 let propIdCounter = 0;
 
 const EDITOR_POS_GRID = 0.05;
@@ -118,6 +120,7 @@ const PROP_DEFAULTS = {
   pedestal:  { x: 0,    z: -5,  y: 0,    rotY: 0 },
   bust:      { x: 1.5,  z: -3,  y: 0,    rotY: 0 },
   cart:      { x: -4.5, z: -1,  y: 0,    rotY: 0 },
+  computer:  { x: 2.2,  z: 6.0, y: 0,    rotY: 0 },
 };
 
 /** @param {string|number|undefined|null} c */
@@ -152,6 +155,7 @@ function normalizePropConfig(kind, raw) {
 function clearProps() {
   propInstances.forEach(({ group }) => scene.remove(group));
   propInstances.length = 0;
+  computerInstances.length = 0;
 }
 
 function tagPropGroup(grp, kind, id) {
@@ -839,8 +843,199 @@ function buildPropInstance(kind, c, id) {
       propInstances.push({ id, group: grp });
       break;
     }
+    case 'computer': {
+      const bodyMat = new THREE.MeshLambertMaterial({ color: 0x141414 });
+      const metal = new THREE.MeshLambertMaterial({ color: 0x2a2a2a });
+
+      const grp = new THREE.Group();
+
+      const base = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.08, 0.55), metal);
+      base.position.y = 0.04;
+      base.castShadow = true;
+      base.receiveShadow = true;
+      grp.add(base);
+
+      const stand = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.45, 0.12), metal);
+      stand.position.y = 0.08 + 0.225;
+      stand.castShadow = true;
+      grp.add(stand);
+
+      const monitor = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.55, 0.08), bodyMat);
+      monitor.position.y = 0.08 + 0.45 + 0.275;
+      monitor.castShadow = true;
+      grp.add(monitor);
+
+      const screenCanvas = document.createElement('canvas');
+      screenCanvas.width = 256;
+      screenCanvas.height = 160;
+      const screenCtx = screenCanvas.getContext('2d');
+      screenCtx.fillStyle = '#000000';
+      screenCtx.fillRect(0, 0, screenCanvas.width, screenCanvas.height);
+      const screenTex = new THREE.CanvasTexture(screenCanvas);
+      screenTex.minFilter = THREE.LinearFilter;
+      screenTex.magFilter = THREE.LinearFilter;
+
+      const screenMat = new THREE.MeshLambertMaterial({
+        map: screenTex,
+        color: 0xffffff,
+        emissive: new THREE.Color(0x000000),
+      });
+      const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.42), screenMat);
+      screen.position.set(0, monitor.position.y, 0.045);
+      grp.add(screen);
+
+      const keyboard = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.03, 0.25), bodyMat);
+      keyboard.position.set(0, 0.08 + 0.02, 0.22);
+      keyboard.castShadow = true;
+      grp.add(keyboard);
+
+      grp.position.set(c.x, c.y, c.z);
+      grp.rotation.y = c.rotY;
+
+      grp.userData.computer = {
+        screenCanvas,
+        screenCtx,
+        screenTex,
+        screenMat,
+        state: null,
+      };
+
+      tagPropGroup(grp, 'computer', id);
+      scene.add(grp);
+      propInstances.push({ id, group: grp });
+      computerInstances.push({ id, group: grp });
+      break;
+    }
     default:
       break;
+  }
+}
+
+const COMPUTER_INTERACT_DISTANCE = 2.6;
+
+function findNearestComputer(worldPos, maxDist = COMPUTER_INTERACT_DISTANCE) {
+  let best = null;
+  let bestDist = Infinity;
+  for (const inst of computerInstances) {
+    const g = inst.group;
+    if (!g) continue;
+    const d = worldPos.distanceTo(g.position);
+    if (d < bestDist) {
+      bestDist = d;
+      best = g;
+    }
+  }
+  return bestDist <= maxDist ? best : null;
+}
+
+function startComputerPlayback(computerGroup, cassetteData) {
+  const comp = computerGroup?.userData?.computer;
+  const url = cassetteData?.deployedUrl;
+  if (!comp || !url) return false;
+  if (comp.state) return false;
+
+  let winRef = null;
+  try {
+    winRef = window.open('about:blank', '_blank');
+  } catch (_) {
+    winRef = null;
+  }
+
+  comp.state = {
+    t: 0,
+    phase: 'boot',
+    bootDur: 0.35,
+    staticDur: 0.9,
+    offDur: 0.25,
+    opened: false,
+    url,
+    winRef,
+    cassetteSlotIndex: cassetteData.slotIndex,
+  };
+
+  return true;
+}
+
+function updateComputerScreenStatic(comp, intensity) {
+  const ctx = comp.screenCtx;
+  const W = comp.screenCanvas.width;
+  const H = comp.screenCanvas.height;
+  const img = ctx.createImageData(W, H);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = (Math.random() * 255) | 0;
+    d[i + 0] = v;
+    d[i + 1] = v;
+    d[i + 2] = v;
+    d[i + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillRect(0, 0, W, 22);
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.font = 'bold 14px Courier New, monospace';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('LOADING...', 10, 11);
+
+  comp.screenTex.needsUpdate = true;
+  if (comp.screenMat?.emissive) comp.screenMat.emissive.setScalar(intensity);
+}
+
+function turnComputerOff(comp) {
+  const ctx = comp.screenCtx;
+  const W = comp.screenCanvas.width;
+  const H = comp.screenCanvas.height;
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, W, H);
+  comp.screenTex.needsUpdate = true;
+  if (comp.screenMat?.emissive) comp.screenMat.emissive.setScalar(0);
+}
+
+function updateComputers(dt) {
+  for (const inst of computerInstances) {
+    const comp = inst.group?.userData?.computer;
+    if (!comp?.state) continue;
+
+    const s = comp.state;
+    s.t += dt;
+
+    if (s.phase === 'boot') {
+      const u = Math.min(1, s.t / s.bootDur);
+      updateComputerScreenStatic(comp, 0.4 * u);
+      if (s.t >= s.bootDur) {
+        s.phase = 'static';
+        s.t = 0;
+      }
+      continue;
+    }
+
+    if (s.phase === 'static') {
+      updateComputerScreenStatic(comp, 0.55);
+      if (!s.opened && s.t >= Math.max(0.2, s.staticDur * 0.6)) {
+        s.opened = true;
+        try {
+          if (s.winRef && !s.winRef.closed) s.winRef.location.href = s.url;
+          else window.open(s.url, '_blank');
+        } catch (_) {}
+      }
+
+      if (s.t >= s.staticDur) {
+        s.phase = 'off';
+        s.t = 0;
+      }
+      continue;
+    }
+
+    if (s.phase === 'off') {
+      const u = 1 - Math.min(1, s.t / s.offDur);
+      updateComputerScreenStatic(comp, 0.3 * u);
+      if (s.t >= s.offDur) {
+        turnComputerOff(comp);
+        comp.state = null;
+        if (typeof returnHeldCassette === 'function') returnHeldCassette();
+      }
+    }
   }
 }
 
@@ -890,6 +1085,7 @@ function buildFromLayout(layout) {
   if (!layout) {
     // Defaults
     buildShelves();
+    if (typeof buildCassetteShelves === 'function') buildCassetteShelves();
     buildDesk(0, 6);
     buildProps();
     return;
@@ -899,6 +1095,12 @@ function buildFromLayout(layout) {
     layout.shelves.forEach(s => addShelfUnit(s.x, s.z, s.rotY));
   } else {
     buildShelves();
+  }
+
+  if (layout.cassetteShelves) {
+    layout.cassetteShelves.forEach(s => addCassetteShelfUnit(s.x, s.z, s.rotY));
+  } else if (typeof buildCassetteShelves === 'function') {
+    buildCassetteShelves();
   }
 
   const d = layout.desk || { x: 0, z: 6 };
