@@ -1137,7 +1137,7 @@ function updateDeskProximity() {
   if (heldCassette && heldCassette.pickupPhase === 'held' && !heldCassette.inUse) {
     const comp = typeof findNearestComputer === 'function' ? findNearestComputer(yawObj.position) : null;
     if (comp) {
-      if (deskPromptTextEl) deskPromptTextEl.innerHTML = 'Press <strong>E</strong> to play website';
+      if (deskPromptTextEl) deskPromptTextEl.innerHTML = 'Press <strong>E</strong> to visit website';
       deskPromptEl.classList.add('visible');
       return;
     }

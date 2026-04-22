@@ -913,6 +913,13 @@ function buildPropInstance(kind, c, id) {
 
 const COMPUTER_INTERACT_DISTANCE = 2.6;
 
+function computerNowMs() {
+  try {
+    if (typeof performance !== 'undefined' && typeof performance.now === 'function') return performance.now();
+  } catch (_) {}
+  return Date.now();
+}
+
 function findNearestComputer(worldPos, maxDist = COMPUTER_INTERACT_DISTANCE) {
   let best = null;
   let bestDist = Infinity;
@@ -941,17 +948,136 @@ function startComputerPlayback(computerGroup, cassetteData) {
     winRef = null;
   }
 
-  comp.state = {
-    t: 0,
-    phase: 'boot',
-    bootDur: 0.35,
-    staticDur: 0.9,
-    offDur: 0.25,
-    opened: false,
+  // Try to keep focus in the library tab so the static animation can play.
+  // If the browser ignores this, the timers below still navigate the new tab.
+  try { winRef?.blur?.(); } catch (_) {}
+  try { window.focus?.(); } catch (_) {}
+
+  // Write a quick loading stub so the new tab isn't a white flash.
+  try {
+    if (winRef && !winRef.closed && winRef.document) {
+      winRef.document.title = 'Loading…';
+      const doc = winRef.document;
+      doc.open();
+      doc.write(`<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Loading…</title>
+    <style>
+      html, body { margin:0; height:100%; background:#0a0705; overflow:hidden; }
+      canvas { width:100%; height:100%; display:block; image-rendering: pixelated; }
+      .label {
+        position: fixed;
+        left: 16px; top: 14px;
+        color: #e8d5a3;
+        font-family: Georgia, serif;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        font-size: 12px;
+        opacity: 0.9;
+        text-shadow: 0 0 18px rgba(200,150,60,0.15);
+        pointer-events: none;
+      }
+      .hint {
+        position: fixed;
+        left: 16px; top: 34px;
+        color: rgba(232,213,163,0.7);
+        font-family: Georgia, serif;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        font-size: 10px;
+        opacity: 0.75;
+        pointer-events: none;
+      }
+      .vignette {
+        position: fixed; inset: 0;
+        pointer-events: none;
+        background: radial-gradient(circle at 50% 40%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.85) 100%);
+        mix-blend-mode: multiply;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="static"></canvas>
+    <div class="label">TUNING…</div>
+    <div class="hint">Opening in ~1s</div>
+    <div class="vignette"></div>
+    <script>
+      (function () {
+        const canvas = document.getElementById('static');
+        const ctx = canvas.getContext('2d', { alpha: false });
+        const targetW = 320;
+        const targetH = 200;
+        canvas.width = targetW;
+        canvas.height = targetH;
+
+        const img = ctx.createImageData(targetW, targetH);
+        const d = img.data;
+        let t = 0;
+
+        function frame() {
+          t++;
+          // Static noise
+          for (let i = 0; i < d.length; i += 4) {
+            const v = (Math.random() * 255) | 0;
+            d[i + 0] = v;
+            d[i + 1] = v;
+            d[i + 2] = v;
+            d[i + 3] = 255;
+          }
+          ctx.putImageData(img, 0, 0);
+
+          // Scanline shimmer
+          ctx.fillStyle = 'rgba(0,0,0,0.25)';
+          const y = (t * 6) % targetH;
+          ctx.fillRect(0, y, targetW, 3);
+
+          // Warm tint
+          ctx.fillStyle = 'rgba(200,150,60,0.06)';
+          ctx.fillRect(0, 0, targetW, targetH);
+
+          requestAnimationFrame(frame);
+        }
+        frame();
+      })();
+    </script>
+  </body>
+</html>`);
+      doc.close();
+    }
+  } catch (_) {}
+
+  const state = {
+    startedAt: computerNowMs(),
     url,
     winRef,
-    cassetteSlotIndex: cassetteData.slotIndex,
+    opened: false,
+    openTimer: null,
+    finishTimer: null,
   };
+
+  // Important: the new tab must be created on the keypress to avoid popup blocking.
+  // But the *navigation* to the website is delayed so the computer animation can play first.
+  state.openTimer = setTimeout(() => {
+    if (comp.state !== state) return;
+    if (state.opened) return;
+    state.opened = true;
+    try {
+      if (state.winRef && !state.winRef.closed) state.winRef.location.href = state.url;
+      else window.open(state.url, '_blank');
+    } catch (_) {}
+  }, 1000);
+
+  state.finishTimer = setTimeout(() => {
+    if (comp.state !== state) return;
+    try { turnComputerOff(comp); } catch (_) {}
+    comp.state = null;
+    if (typeof returnHeldCassette === 'function') returnHeldCassette();
+  }, 1600);
+
+  comp.state = state;
 
   return true;
 }
@@ -997,45 +1123,22 @@ function updateComputers(dt) {
     const comp = inst.group?.userData?.computer;
     if (!comp?.state) continue;
 
-    const s = comp.state;
-    s.t += dt;
+    let elapsedSec = (computerNowMs() - comp.state.startedAt) / 1000;
+    if (!Number.isFinite(elapsedSec) || elapsedSec < 0) elapsedSec = 0;
 
-    if (s.phase === 'boot') {
-      const u = Math.min(1, s.t / s.bootDur);
+    const animDuration = 0.35;
+
+    // Animation
+    if (elapsedSec < animDuration) {
+      const u = elapsedSec / animDuration;
       updateComputerScreenStatic(comp, 0.4 * u);
-      if (s.t >= s.bootDur) {
-        s.phase = 'static';
-        s.t = 0;
-      }
-      continue;
-    }
-
-    if (s.phase === 'static') {
+    } else {
       updateComputerScreenStatic(comp, 0.55);
-      if (!s.opened && s.t >= Math.max(0.2, s.staticDur * 0.6)) {
-        s.opened = true;
-        try {
-          if (s.winRef && !s.winRef.closed) s.winRef.location.href = s.url;
-          else window.open(s.url, '_blank');
-        } catch (_) {}
-      }
 
-      if (s.t >= s.staticDur) {
-        s.phase = 'off';
-        s.t = 0;
-      }
-      continue;
+      // 🔑 Open exactly once when animation is finished
+
     }
 
-    if (s.phase === 'off') {
-      const u = 1 - Math.min(1, s.t / s.offDur);
-      updateComputerScreenStatic(comp, 0.3 * u);
-      if (s.t >= s.offDur) {
-        turnComputerOff(comp);
-        comp.state = null;
-        if (typeof returnHeldCassette === 'function') returnHeldCassette();
-      }
-    }
   }
 }
 

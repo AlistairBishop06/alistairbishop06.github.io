@@ -142,7 +142,7 @@ function handleClick() {
     heldNameEl.textContent = bookData.repo.name;
     if (heldActionTextEl) {
       heldActionTextEl.innerHTML =
-        'Press <span class="key-inline">E</span> to open &nbsp;Â·&nbsp; desk + <span class="key-inline">E</span> to check out &nbsp;Â·&nbsp;<span class="key-inline">â†</span><span class="key-inline">â†’</span> to change pages &nbsp;Â·&nbsp; <span class="key-inline">Q</span> to shelve';
+        'Press <span class="key-inline">E</span> to open - desk + <span class="key-inline">E</span> to check out - <span class="key-inline">A</span><span class="key-inline">D</span> to change pages - <span class="key-inline">Q</span> to shelve';
     }
     return;
   }
@@ -168,7 +168,7 @@ function handleClick() {
   heldNameEl.textContent = cassetteData.repo.name;
   if (heldActionTextEl) {
     heldActionTextEl.innerHTML =
-      'Bring to a computer + <span class="key-inline">E</span> to play &nbsp;Â·&nbsp; <span class="key-inline">Q</span> to shelve';
+      'Bring to a computer + <span class="key-inline">E</span> to play - <span class="key-inline">Q</span> to shelve';
   }
 }
 
