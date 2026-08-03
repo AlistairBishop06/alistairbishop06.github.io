@@ -2,7 +2,7 @@ export type WindowKind =
   | 'projects' | 'websites' | 'about' | 'cv' | 'computer' | 'browser'
   | 'contact' | 'recycle' | 'control' | 'display' | 'notepad' | 'cmd'
   | 'run' | 'shutdown' | 'message' | 'help' | 'search' | 'documents'
-  | 'recent' | 'email' | 'mines' | 'winver';
+  | 'recent' | 'email' | 'mines' | 'pinball' | 'winver';
 
 export interface Rect { x: number; y: number; width: number; height: number }
 
@@ -28,7 +28,7 @@ export type IconName =
   | 'run' | 'mines' | 'save' | 'printer' | 'back' | 'forward' | 'up'
   | 'refresh' | 'stop' | 'home' | 'favorites' | 'go' | 'restore'
   | 'delete' | 'standby' | 'power' | 'restart' | 'documents' | 'recent'
-  | 'properties' | 'new-folder' | 'logoff' | 'copy';
+  | 'properties' | 'new-folder' | 'logoff' | 'copy' | 'pinball';
 
 export interface GitHubRepo {
   id: number;

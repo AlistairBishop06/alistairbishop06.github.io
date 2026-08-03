@@ -3,7 +3,7 @@ import type { BrowserTarget, WindowKind } from '../../types';
 import { useSystem } from '../../context/SystemContext';
 import { IconGlyph } from '../common/IconGlyph';
 
-const commands: Record<string, WindowKind> = { projects: 'projects', websites: 'websites', about: 'about', contact: 'contact', cv: 'cv', notepad: 'notepad', iexplore: 'browser', cmd: 'cmd', control: 'control', help: 'help', winver: 'winver' };
+const commands: Record<string, WindowKind> = { projects: 'projects', websites: 'websites', about: 'about', contact: 'contact', cv: 'cv', notepad: 'notepad', iexplore: 'browser', cmd: 'cmd', control: 'control', help: 'help', pinball: 'pinball', winver: 'winver' };
 export function RunDialog({ close }: { close: () => void }) {
   const [value, setValue] = useState('');
   const { open, openBrowser, notify } = useSystem();

@@ -12,6 +12,7 @@ const icons: Array<{ id: string; name: string; icon: IconName; kind: WindowKind 
   { id: 'computer', name: 'My Computer', icon: 'computer', kind: 'computer' },
   { id: 'browser', name: 'Internet Explorer', icon: 'browser', kind: 'browser' },
   { id: 'contact', name: 'Contact Me', icon: 'contact', kind: 'contact' },
+  { id: 'pinball', name: '3D Pinball Space Cadet', icon: 'pinball', kind: 'pinball' },
   { id: 'recycle', name: 'Recycle Bin', icon: 'recycle', kind: 'recycle' },
 ];
 

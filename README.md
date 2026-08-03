@@ -1,6 +1,6 @@
 # Alistair Portfolio XP
 
-An interactive portfolio that behaves like a compact Windows XP-inspired operating system in the browser. It includes a startup sequence, desktop, window manager, Start menu, taskbar, live GitHub Explorer, README Notepad, internal tabbed browser, portfolio applications, accessibility settings, sound, and a handful of harmless easter eggs.
+An interactive portfolio that behaves like a compact Windows XP-inspired operating system in the browser. It includes a startup sequence, desktop, window manager, Start menu, taskbar, live GitHub Explorer, README Notepad, internal tabbed browser, portfolio applications, an embedded Space Cadet Pinball app, accessibility settings, sound, and a handful of harmless easter eggs.
 
 The hill wallpaper was generated specifically for this project, while the supplied XP icon and sound collections are stored locally. No image or audio is hotlinked at runtime.
 
@@ -110,7 +110,7 @@ Import the repository in Vercel. The included `vercel.json` provides the SPA fal
 - Double-click (or double-tap) desktop icons; single-click selects.
 - Right-click the desktop for Refresh and Display Properties.
 - Taskbar buttons focus, minimise and restore their windows.
-- The Run dialog supports `projects`, `websites`, `about`, `contact`, `cv`, `github`, `notepad`, `iexplore`, `cmd`, `control`, `help`, and `winver`.
+- The Run dialog supports `projects`, `websites`, `about`, `contact`, `cv`, `github`, `notepad`, `iexplore`, `cmd`, `control`, `help`, `pinball`, and `winver`.
 - Command Prompt supports the commands listed by `help` plus `matrix`, `bsod`, and a deliberately disappointing `doom`.
 - Enter the Konami code for a secret desktop effect; click the clock five times for Minesweeper.
 

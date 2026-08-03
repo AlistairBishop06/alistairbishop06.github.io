@@ -13,6 +13,7 @@ const iconFiles: Record<IconName, string> = {
   home: 'home.png', favorites: 'favorites.png', go: 'go.png', restore: 'restore.png', delete: 'delete.png',
   standby: 'standby.png', power: 'power.png', restart: 'restart.png', documents: 'documents.png',
   recent: 'recent.png', properties: 'properties.png', 'new-folder': 'new-folder.png', logoff: 'logoff.png', copy: 'copy.png',
+  pinball: 'pinball.png',
 };
 
 export function IconGlyph({ name, size = 32, className = '' }: { name: IconName; size?: number; className?: string }) {
