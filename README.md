@@ -103,7 +103,9 @@ Import the repository in Vercel. The included `vercel.json` provides the SPA fal
 
 ### GitHub Pages
 
-`vite.config.ts` uses a relative base, so the production files work in a repository subpath. Build with `npm run build` and publish `dist/` using GitHub Actions or a Pages action. Ensure Pages serves `index.html` for the entry route.
+The included `.github/workflows/deploy-pages.yml` builds the Vite application and publishes only `dist/` whenever `main` is pushed. In the GitHub repository, open **Settings → Pages** and set **Source** to **GitHub Actions**. Do not select `main` as a branch source: that serves the uncompiled `index.html`, which points at `src/main.tsx` and results in a blank page.
+
+For the contact form on GitHub Pages, create a repository variable named `VITE_CONTACT_ENDPOINT` under **Settings → Secrets and variables → Actions → Variables**. The workflow exposes it only during the Vite build.
 
 ## Useful interactions
 
