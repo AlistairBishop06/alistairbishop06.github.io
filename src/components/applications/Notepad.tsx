@@ -7,20 +7,42 @@ import { useSystem } from '../../context/SystemContext';
 import { MenuBar } from '../common/MenuBar';
 import { IconGlyph } from '../common/IconGlyph';
 
-export function Notepad({ repo }: { repo?: GitHubRepo }) {
+interface NotepadFile { name: string; url: string }
+
+export function Notepad({ repo, file }: { repo?: GitHubRepo; file?: NotepadFile }) {
   const [content, setContent] = useState('');
-  const [loading, setLoading] = useState(Boolean(repo));
+  const [loading, setLoading] = useState(Boolean(repo || file));
   const [error, setError] = useState('');
   const [rendered, setRendered] = useState(false);
   const [wrap, setWrap] = useState(true);
   const { openBrowser, play } = useSystem();
   const print = () => { play('print'); window.setTimeout(() => window.print(), 80); };
   useEffect(() => {
-    if (!repo) { setContent('Welcome to Alistair Portfolio XP!\n\nOpen My Projects to view a repository README.'); return; }
     let live = true;
-    void getRepositoryReadme(repo).then(value => live && setContent(value)).catch(reason => live && setError(reason instanceof Error ? reason.message : 'Could not read this file.')).finally(() => live && setLoading(false));
+    setContent('');
+    setError('');
+    if (file) {
+      setLoading(true);
+      void fetch(file.url)
+        .then(response => {
+          if (!response.ok) throw new Error(`Could not open ${file.name}.`);
+          return response.text();
+        })
+        .then(value => live && setContent(value))
+        .catch(reason => live && setError(reason instanceof Error ? reason.message : 'Could not read this file.'))
+        .finally(() => live && setLoading(false));
+    } else if (repo) {
+      setLoading(true);
+      void getRepositoryReadme(repo)
+        .then(value => live && setContent(value))
+        .catch(reason => live && setError(reason instanceof Error ? reason.message : 'Could not read this file.'))
+        .finally(() => live && setLoading(false));
+    } else {
+      setLoading(false);
+      setContent('Welcome to Alistair Portfolio XP!\n\nOpen My Projects to view a repository README.');
+    }
     return () => { live = false; };
-  }, [repo]);
+  }, [repo, file]);
   const menus = [
     { label: 'File', items: [{ label: 'New' }, { label: 'Open...', disabled: true }, { label: 'Save', disabled: true }, { separator: true, label: '' }, { label: 'Page Setup...', disabled: true }, { label: 'Print...', action: print }] },
     { label: 'Edit', items: [{ label: 'Undo', disabled: true }, { separator: true, label: '' }, { label: 'Select All', action: () => window.getSelection()?.selectAllChildren(document.querySelector('.notepad-document')!) }] },
@@ -31,7 +53,7 @@ export function Notepad({ repo }: { repo?: GitHubRepo }) {
   return <div className="notepad app-fill">
     <MenuBar menus={menus} />
     <div className={`notepad-document ${rendered ? 'markdown' : 'plain'} ${wrap ? 'wrap' : ''}`}>
-      {loading && <div className="loading-state"><div className="xp-spinner" />Opening README...</div>}
+      {loading && <div className="loading-state"><div className="xp-spinner" />Opening {file?.name || 'README'}...</div>}
       {error && <div className="error-state"><IconGlyph name="error" size={38} /><div><b>Cannot open this file</b><p>{error}</p></div></div>}
       {!loading && !error && (rendered
         ? <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml components={{ a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer">{children}</a> }}>{content}</ReactMarkdown>

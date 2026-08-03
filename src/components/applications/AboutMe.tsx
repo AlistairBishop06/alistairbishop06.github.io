@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { profile } from '../../data/profile';
 import { experience } from '../../data/experience';
 import { education } from '../../data/education';
@@ -6,8 +6,11 @@ import { skillGroups } from '../../data/skills';
 import { IconGlyph } from '../common/IconGlyph';
 
 const tabs = ['General', 'Education', 'Experience', 'Skills', 'Interests'] as const;
-export function AboutMe() {
-  const [tab, setTab] = useState<typeof tabs[number]>('General');
+export type AboutTab = typeof tabs[number];
+
+export function AboutMe({ initialTab = 'General' }: { initialTab?: AboutTab }) {
+  const [tab, setTab] = useState<AboutTab>(initialTab);
+  useEffect(() => setTab(initialTab), [initialTab]);
   return <div className="properties-app app-fill">
     <div className="property-tabs" role="tablist">{tabs.map(item => <button key={item} role="tab" aria-selected={tab === item} className={tab === item ? 'active' : ''} onClick={() => setTab(item)}>{item}</button>)}</div>
     <div className="property-page about-page">

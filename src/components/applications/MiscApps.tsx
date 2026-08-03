@@ -7,8 +7,14 @@ import { useSystem } from '../../context/SystemContext';
 
 export function DocumentsApp({ recent = false }: { recent?: boolean }) {
   const { open } = useSystem();
-  const items = recent ? ['alistair-bishop-cv.pdf', 'project-ideas.txt', 'networking-notes.doc'] : ['My CV', 'Education', 'Experience', 'Project Notes'];
-  return <div className="simple-folder app-fill"><aside><h3>{recent ? 'Recent Documents' : 'File and Folder Tasks'}</h3><button>Create a new folder</button><button>Share this folder</button></aside><div>{items.map((item, index) => <button key={item} onDoubleClick={() => index === 0 && open('cv')}><IconGlyph name={index === 0 ? 'cv' : 'document'} size={38} /><span>{item}</span></button>)}</div></div>;
+  const notesFile = { name: 'project-notes.md', url: './documents/project-notes.md' };
+  const items = [
+    { name: recent ? 'alistair-bishop-cv.pdf' : 'My CV', icon: 'cv' as const, launch: () => open('cv') },
+    { name: 'Education', icon: 'document' as const, launch: () => open('about', { tab: 'Education' }) },
+    { name: 'Experience', icon: 'document' as const, launch: () => open('about', { tab: 'Experience' }) },
+    { name: recent ? notesFile.name : 'Project Notes', icon: 'notepad' as const, launch: () => open('notepad', { file: notesFile }, `${notesFile.name} - Notepad`) },
+  ];
+  return <div className="simple-folder app-fill"><aside><h3>{recent ? 'Recent Documents' : 'File and Folder Tasks'}</h3><button disabled>Create a new folder</button><button disabled>Share this folder</button></aside><div>{items.map(item => <button key={item.name} title="Double-click to open" onDoubleClick={item.launch} onKeyDown={event => event.key === 'Enter' && item.launch()}><IconGlyph name={item.icon} size={38} /><span>{item.name}</span></button>)}</div></div>;
 }
 export function HelpApp() {
   const [query, setQuery] = useState('');

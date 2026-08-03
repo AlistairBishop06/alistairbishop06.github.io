@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import type { BrowserTarget, GitHubRepo, XPWindow } from '../../types';
-import { AboutMe } from './AboutMe';
+import { AboutMe, type AboutTab } from './AboutMe';
 const ProjectsExplorer = lazy(() => import('./ProjectsExplorer').then(module => ({ default: module.ProjectsExplorer })));
 const WebsitesExplorer = lazy(() => import('./WebsitesExplorer').then(module => ({ default: module.WebsitesExplorer })));
 const Notepad = lazy(() => import('./Notepad').then(module => ({ default: module.Notepad })));
@@ -24,9 +24,9 @@ export function ApplicationRouter({ win, close }: { win: XPWindow; close: () => 
   switch (win.kind) {
     case 'projects': application = <ProjectsExplorer />; break;
     case 'websites': application = <WebsitesExplorer />; break;
-    case 'notepad': application = <Notepad repo={payload.repo as GitHubRepo | undefined} />; break;
+    case 'notepad': application = <Notepad repo={payload.repo as GitHubRepo | undefined} file={payload.file as { name: string; url: string } | undefined} />; break;
     case 'browser': application = <InternetExplorer initialTarget={payload.target as BrowserTarget | undefined} requestId={payload.requestId as number | undefined} />; break;
-    case 'about': application = <AboutMe />; break; case 'cv': application = <WordPadCV />; break; case 'contact': application = <ContactApp />; break; case 'computer': application = <MyComputer />; break;
+    case 'about': application = <AboutMe initialTab={payload.tab as AboutTab | undefined} />; break; case 'cv': application = <WordPadCV />; break; case 'contact': application = <ContactApp />; break; case 'computer': application = <MyComputer />; break;
     case 'control': application = <ControlPanel initialPanel={payload.panel as string | undefined} />; break; case 'display': application = <DisplayProperties close={close} />; break;
     case 'recycle': application = <RecycleBin />; break; case 'cmd': application = <CommandPrompt close={close} />; break; case 'run': application = <RunDialog close={close} />; break; case 'shutdown': application = <ShutdownDialog close={close} />; break;
     case 'message': application = <MessageBox title={payload.title as string | undefined} message={payload.message as string | undefined} type={payload.type as 'info' | 'error' | undefined} close={close} />; break;
