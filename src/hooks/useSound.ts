@@ -1,38 +1,102 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
-export type SoundName = 'startup' | 'click' | 'folder' | 'start' | 'error' | 'info' | 'empty' | 'window' | 'shutdown';
+export type SoundName =
+  | 'startup' | 'login' | 'logoff' | 'shutdown'
+  | 'click' | 'folder' | 'start' | 'error' | 'critical' | 'warning'
+  | 'info' | 'balloon' | 'ding' | 'empty' | 'window'
+  | 'minimize' | 'maximize' | 'print'
+  | 'hardwareInsert' | 'hardwareRemove' | 'hardwareFail'
+  | 'batteryLow' | 'batteryCritical' | 'incoming' | 'outgoing';
 
-const tones: Record<SoundName, Array<[number, number, number]>> = {
-  startup: [[392, .11, 0], [523, .14, .09], [659, .22, .2]],
-  click: [[760, .035, 0]],
-  folder: [[520, .055, 0], [660, .06, .045]],
-  start: [[440, .05, 0], [587, .08, .04]],
-  error: [[180, .11, 0], [140, .18, .12]],
-  info: [[660, .09, 0], [880, .16, .09]],
-  empty: [[420, .07, 0], [310, .1, .08], [210, .14, .17]],
-  window: [[580, .055, 0]],
-  shutdown: [[659, .12, 0], [523, .14, .1], [392, .24, .22]],
+interface SoundDefinition { file: string; gain?: number; lifecycle?: boolean }
+
+export const soundManifest: Record<SoundName, SoundDefinition> = {
+  startup: { file: 'xpstartup.wav', gain: .78, lifecycle: true },
+  login: { file: 'xplogon.wav', gain: .8, lifecycle: true },
+  logoff: { file: 'xplogoff.wav', gain: .8, lifecycle: true },
+  shutdown: { file: 'xpshutdn.wav', gain: .82, lifecycle: true },
+  click: { file: 'xpmenu.wav', gain: .38 },
+  start: { file: 'xpmenu.wav', gain: .46 },
+  folder: { file: 'xpding.wav', gain: .62 },
+  window: { file: 'xprestor.wav', gain: .58 },
+  minimize: { file: 'xpmin.wav', gain: .58 },
+  maximize: { file: 'xprestor.wav', gain: .58 },
+  info: { file: 'xpnotify.wav', gain: .68 },
+  balloon: { file: 'xpballn.wav', gain: .58 },
+  ding: { file: 'xpdef.wav', gain: .62 },
+  warning: { file: 'xpexcl.wav', gain: .72 },
+  error: { file: 'xperror.wav', gain: .76 },
+  critical: { file: 'xpcrtstp.wav', gain: .8 },
+  empty: { file: 'xprecycl.wav', gain: .74 },
+  print: { file: 'xpprint.wav', gain: .7 },
+  hardwareInsert: { file: 'xphdinst.wav', gain: .66 },
+  hardwareRemove: { file: 'xphdrem.wav', gain: .66 },
+  hardwareFail: { file: 'xphdfail.wav', gain: .72 },
+  batteryLow: { file: 'xpbatlow.wav', gain: .7 },
+  batteryCritical: { file: 'xpbatcrt.wav', gain: .78 },
+  incoming: { file: 'xpringin.wav', gain: .68 },
+  outgoing: { file: 'xprngout.wav', gain: .68 },
 };
 
+const soundUrl = (name: SoundName) => `./assets/sounds/${soundManifest[name].file}`;
+
 export function useSound(enabled: boolean, volume: number) {
-  const context = useRef<AudioContext | null>(null);
+  const cache = useRef(new Map<SoundName, HTMLAudioElement>());
+  const playing = useRef(new Set<HTMLAudioElement>());
+  const lifecycle = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    // Prepare only the first post-interaction cue and the tiny command sound.
+    (['click', 'login'] as SoundName[]).forEach(name => {
+      const audio = new Audio(soundUrl(name));
+      audio.preload = 'auto';
+      cache.current.set(name, audio);
+    });
+    return () => {
+      playing.current.forEach(audio => audio.pause());
+      playing.current.clear();
+      cache.current.clear();
+      lifecycle.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    playing.current.forEach(audio => {
+      if (!enabled || volume <= 0) audio.pause();
+      else audio.volume = Math.max(0, Math.min(1, volume * Number(audio.dataset.gain || 1)));
+    });
+    if (!enabled || volume <= 0) {
+      playing.current.clear();
+      lifecycle.current = null;
+    }
+  }, [enabled, volume]);
+
   return useCallback((name: SoundName) => {
     if (!enabled || volume <= 0) return;
-    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    context.current ??= new AudioContextClass();
-    const ctx = context.current;
-    void ctx.resume();
-    tones[name].forEach(([frequency, duration, delay]) => {
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-      oscillator.type = name === 'error' ? 'square' : 'sine';
-      oscillator.frequency.value = frequency;
-      gain.gain.setValueAtTime(0, ctx.currentTime + delay);
-      gain.gain.linearRampToValueAtTime(volume * .08, ctx.currentTime + delay + .008);
-      gain.gain.exponentialRampToValueAtTime(.0001, ctx.currentTime + delay + duration);
-      oscillator.connect(gain).connect(ctx.destination);
-      oscillator.start(ctx.currentTime + delay);
-      oscillator.stop(ctx.currentTime + delay + duration + .02);
-    });
+    const definition = soundManifest[name];
+    let source = cache.current.get(name);
+    if (!source) {
+      source = new Audio(soundUrl(name));
+      source.preload = definition.lifecycle ? 'auto' : 'metadata';
+      cache.current.set(name, source);
+    }
+
+    if (definition.lifecycle && lifecycle.current) {
+      lifecycle.current.pause();
+      playing.current.delete(lifecycle.current);
+    }
+
+    const audio = source.cloneNode(true) as HTMLAudioElement;
+    audio.dataset.gain = String(definition.gain ?? 1);
+    audio.volume = Math.max(0, Math.min(1, volume * (definition.gain ?? 1)));
+    const cleanup = () => {
+      playing.current.delete(audio);
+      if (lifecycle.current === audio) lifecycle.current = null;
+    };
+    audio.addEventListener('ended', cleanup, { once: true });
+    audio.addEventListener('error', cleanup, { once: true });
+    playing.current.add(audio);
+    if (definition.lifecycle) lifecycle.current = audio;
+    void audio.play().catch(cleanup); // Browser policy still requires a prior visitor gesture.
   }, [enabled, volume]);
 }

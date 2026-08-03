@@ -21,9 +21,14 @@ export interface XPWindow {
 
 export type IconName =
   | 'folder' | 'websites' | 'about' | 'cv' | 'computer' | 'browser'
-  | 'contact' | 'recycle' | 'control' | 'notepad' | 'cmd' | 'document'
+  | 'contact' | 'recycle' | 'recycle-empty' | 'control' | 'notepad' | 'cmd' | 'document'
   | 'network' | 'sound' | 'search' | 'help' | 'drive' | 'skills' | 'mail'
-  | 'paint' | 'info' | 'error' | 'user' | 'windows' | 'globe' | 'app';
+  | 'paint' | 'info' | 'error' | 'user' | 'windows' | 'globe' | 'app'
+  | 'mute' | 'display' | 'mouse' | 'accessibility' | 'date' | 'programs'
+  | 'run' | 'mines' | 'save' | 'printer' | 'back' | 'forward' | 'up'
+  | 'refresh' | 'stop' | 'home' | 'favorites' | 'go' | 'restore'
+  | 'delete' | 'standby' | 'power' | 'restart' | 'documents' | 'recent'
+  | 'properties' | 'new-folder' | 'logoff' | 'copy';
 
 export interface GitHubRepo {
   id: number;

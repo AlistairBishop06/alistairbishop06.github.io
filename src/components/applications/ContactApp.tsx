@@ -12,20 +12,20 @@ export function ContactApp() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!form.name.trim() || !/^\S+@\S+\.\S+$/.test(form.email) || !form.message.trim()) {
-      play('error'); notify('Contact Me', 'Please enter your name, a valid email address and a message.', 'error'); return;
+      notify('Contact Me', 'Please enter your name, a valid email address and a message.', 'error'); return;
     }
-    if (!endpoint) { notify('Contact form setup', 'The form is ready. Add VITE_CONTACT_ENDPOINT to connect Formspree, Web3Forms or another provider.'); return; }
+    if (!endpoint) { play('warning'); notify('Contact form setup', 'The form is ready. Add VITE_CONTACT_ENDPOINT to connect Formspree, Web3Forms or another provider.', 'info', false); return; }
     setSending(true);
     try {
       const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(form) });
       if (!response.ok) throw new Error();
-      setForm({ name: '', email: '', subject: '', message: '' }); notify('Message sent', 'Thanks! Your message was sent successfully.');
+      setForm({ name: '', email: '', subject: '', message: '' }); play('outgoing'); notify('Message sent', 'Thanks! Your message was sent successfully.', 'info', false);
     } catch { notify('Send failed', 'The message could not be sent. Please use one of the direct contact links.', 'error'); }
     finally { setSending(false); }
   };
   return <div className="contact-app app-fill">
     <aside><div className="contact-envelope"><IconGlyph name="contact" size={68} /></div><h2>Contact Alistair</h2><p>Questions, opportunities and interesting ideas are always welcome.</p>
-      <button onClick={() => void navigator.clipboard.writeText(profile.email)}>📋 Copy email address</button>
+      <button onClick={() => void navigator.clipboard.writeText(profile.email)}><IconGlyph name="copy" size={20} /> Copy email address</button>
       {socialLinks.map(link => <a href={link.url} target="_blank" rel="noreferrer" key={link.label}>{link.label} <span>↗</span></a>)}
     </aside>
     <form onSubmit={submit}><fieldset><legend>Send a message</legend>

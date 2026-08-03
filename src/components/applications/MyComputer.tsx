@@ -25,7 +25,7 @@ export function MyComputer() {
   };
   return <ExplorerShell title="My Computer" address="My Computer" count={drives.length} view={view} setView={setView}>
     <h3 className="file-group-title">Files Stored on This Computer</h3>
-    <button className="file-item" onDoubleClick={() => open('documents')}><IconGlyph name="folder" size={40} /><span className="file-name">Alistair's Documents</span><span className="file-description">C:\\Documents and Settings\\Alistair</span></button>
+    <button className="file-item" onDoubleClick={() => open('documents')}><IconGlyph name="documents" size={40} /><span className="file-name">Alistair's Documents</span><span className="file-description">C:\\Documents and Settings\\Alistair</span></button>
     <h3 className="file-group-title">Hard Disk Drives</h3>
     {drives.map(drive => <button key={drive.id} className={`file-item drive-item ${selected === drive.id ? 'selected' : ''}`} onClick={() => setSelected(drive.id)} onDoubleClick={() => launch(drive.id)}>
       <IconGlyph name={drive.icon} size={42} /><span className="file-name">{drive.name}</span><span className="file-type">{drive.detail}</span><span className="drive-usage"><i style={{ width: `${drive.used}%` }} /></span><span className="file-description">{100 - drive.used} GB free of 100 GB</span>

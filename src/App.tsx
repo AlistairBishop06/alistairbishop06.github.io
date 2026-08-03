@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { BrowserTarget } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useSound } from './hooks/useSound';
@@ -17,13 +17,27 @@ export default function App() {
   const [poweredOff, setPoweredOff] = useState(false);
   const [blueScreen, setBlueScreen] = useState(false);
   const [firstInteraction, setFirstInteraction] = useState(false);
+  const loginPlayed = useRef(false);
   const manager = useWindowManager();
   const play = useSound(settings.soundEnabled, settings.volume);
   useEffect(() => {
-    const interact = () => { setFirstInteraction(true); play('startup'); window.removeEventListener('pointerdown', interact); window.removeEventListener('keydown', interact); };
+    const interact = () => { setFirstInteraction(true); window.removeEventListener('pointerdown', interact); window.removeEventListener('keydown', interact); };
     if (!firstInteraction) { window.addEventListener('pointerdown', interact); window.addEventListener('keydown', interact); }
     return () => { window.removeEventListener('pointerdown', interact); window.removeEventListener('keydown', interact); };
   }, [firstInteraction, play]);
+  useEffect(() => {
+    if (!firstInteraction || !started || loginPlayed.current) return;
+    loginPlayed.current = true;
+    play('login');
+  }, [firstInteraction, started, play]);
+  useEffect(() => {
+    const click = (event: PointerEvent) => {
+      const control = (event.target as HTMLElement).closest('button, a, [role="button"]') as HTMLElement | null;
+      if (control && !control.matches(':disabled') && !control.hasAttribute('data-xp-sound')) play('click');
+    };
+    window.addEventListener('pointerdown', click);
+    return () => window.removeEventListener('pointerdown', click);
+  }, [play]);
   useEffect(() => {
     const escape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
@@ -34,13 +48,17 @@ export default function App() {
     };
     window.addEventListener('keydown', escape); return () => window.removeEventListener('keydown', escape);
   }, [blueScreen, manager.windows, manager.closeWindow]);
-  const restart = useCallback(() => { play('shutdown'); manager.closeAll(); setPoweredOff(false); setStarted(false); window.setTimeout(() => setStarted(true), 3600); }, [manager.closeAll, play]);
+  const restart = useCallback(() => {
+    play('logoff'); manager.closeAll(); loginPlayed.current = true; setPoweredOff(false); setStarted(false);
+    window.setTimeout(() => play('startup'), 1800);
+    window.setTimeout(() => setStarted(true), 3600);
+  }, [manager.closeAll, play]);
   const shutDown = useCallback(() => { play('shutdown'); manager.closeAll(); window.setTimeout(() => setPoweredOff(true), 400); }, [manager.closeAll, play]);
   const openBrowser = useCallback((target?: BrowserTarget) => manager.openWindow('browser', target ? { target } : undefined), [manager.openWindow]);
-  const notify = useCallback((title: string, message: string, type: 'info' | 'error' = 'info') => { play(type); manager.openWindow('message', { title, message, type }, title); }, [manager.openWindow, play]);
-  const context = useMemo(() => ({ settings, setSettings, play, open: manager.openWindow, openBrowser, notify, restart, shutDown, triggerBlueScreen: () => setBlueScreen(true) }), [settings, setSettings, play, manager.openWindow, openBrowser, notify, restart, shutDown]);
+  const notify = useCallback((title: string, message: string, type: 'info' | 'error' = 'info', withSound = true) => { if (withSound) play(type); manager.openWindow('message', { title, message, type }, title); }, [manager.openWindow, play]);
+  const context = useMemo(() => ({ settings, setSettings, play, open: manager.openWindow, openBrowser, notify, restart, shutDown, triggerBlueScreen: () => { play('critical'); setBlueScreen(true); } }), [settings, setSettings, play, manager.openWindow, openBrowser, notify, restart, shutDown]);
 
-  if (poweredOff) return <main className="powered-off"><p>It is now safe to turn off your computer.</p><button onClick={() => { setPoweredOff(false); setStarted(false); window.setTimeout(() => setStarted(true), 3500); }}>Turn Portfolio XP back on</button></main>;
+  if (poweredOff) return <main className="powered-off"><p>It is now safe to turn off your computer.</p><button onClick={() => { loginPlayed.current = true; setPoweredOff(false); setStarted(false); play('startup'); window.setTimeout(() => setStarted(true), 3500); }}>Turn Portfolio XP back on</button></main>;
   if (!started) return <StartupSequence onComplete={() => setStarted(true)} onSkip={() => { setSkipStartup(true); setStarted(true); }} />;
   return <SystemContext.Provider value={context}>
     <div className={`xp-system theme-${settings.theme} wallpaper-${settings.wallpaper} pointer-${settings.pointer} ${settings.highContrast ? 'high-contrast' : ''}`} style={{ fontSize: `${settings.textScale * 13}px` }}>

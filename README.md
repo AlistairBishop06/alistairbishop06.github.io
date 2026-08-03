@@ -2,7 +2,7 @@
 
 An interactive portfolio that behaves like a compact Windows XP-inspired operating system in the browser. It includes a startup sequence, desktop, window manager, Start menu, taskbar, live GitHub Explorer, README Notepad, internal tabbed browser, portfolio applications, accessibility settings, sound, and a handful of harmless easter eggs.
 
-The visual assets are original: the hill wallpaper was generated specifically for this project, the UI/icons are code-native, and sounds are synthesised locally with Web Audio. No third-party image or audio is hotlinked at runtime.
+The hill wallpaper was generated specifically for this project, while the supplied XP icon and sound collections are stored locally. No image or audio is hotlinked at runtime.
 
 ## Run locally
 
@@ -53,19 +53,19 @@ Put the image in `public/assets/images/`, then set `profileImage` in `src/data/p
 
 ### CV
 
-Put the real PDF at:
+Place one PDF in:
 
 ```text
-public/documents/alistair-bishop-cv.pdf
+public/documents/
 ```
 
-If it is absent, WordPad displays and downloads an HTML CV built from the central data files.
+The filename can be anything. The CV resolver discovers it automatically and uses the real PDF for the embedded viewer, download, and print actions. If several PDFs are present, the most recently modified one is selected. Development reloads when that PDF changes; production selects it during each build.
 
 ### Icons, wallpaper and sounds
 
 - The current wallpaper is `public/assets/wallpapers/rolling-hills.jpg`.
-- Icons are rendered by `src/components/common/IconGlyph.tsx` and styled in `src/styles/global.css`. Local replacements belong in `public/assets/icons/`.
-- Sound cues are small Web Audio sequences in `src/hooks/useSound.ts`. Add locally licensed replacement audio in `public/assets/sounds/` and update that hook if desired.
+- The shared icon map lives in `src/components/common/IconGlyph.tsx`. Web-sized icons are in `public/assets/icons/ui/`; the full-resolution source collection is preserved in `assets/icon-library/` and is excluded from the deployed bundle.
+- Sound cues are local `.wav` files in `public/assets/sounds/`, mapped by event and volume in `src/hooks/useSound.ts`. Replace a file or adjust the manifest there to customise a cue. Browser autoplay rules mean lifecycle audio begins only after the visitor's first interaction.
 
 Do not hotlink runtime assets: keep them beneath `public/assets/` so the site remains reliable and deployable.
 

@@ -1,3 +1,5 @@
-# Icons
+# Deployed interface icons
 
-Portfolio XP uses original, scalable icon treatments from `IconGlyph.tsx` plus CSS rather than distributing Microsoft artwork. Replace or extend them here if you have appropriately licensed PNG or SVG assets.
+`ui/` contains the optimized 128×128 icons used by Portfolio XP. `src/components/common/IconGlyph.tsx` maps semantic names such as `computer`, `browser`, `folder`, `control`, and `recycle` to these files.
+
+The complete full-resolution source collection is preserved in `assets/icon-library/` and is not copied into the production bundle.

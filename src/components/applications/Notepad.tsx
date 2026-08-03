@@ -13,7 +13,8 @@ export function Notepad({ repo }: { repo?: GitHubRepo }) {
   const [error, setError] = useState('');
   const [rendered, setRendered] = useState(false);
   const [wrap, setWrap] = useState(true);
-  const { openBrowser } = useSystem();
+  const { openBrowser, play } = useSystem();
+  const print = () => { play('print'); window.setTimeout(() => window.print(), 80); };
   useEffect(() => {
     if (!repo) { setContent('Welcome to Alistair Portfolio XP!\n\nOpen My Projects to view a repository README.'); return; }
     let live = true;
@@ -21,7 +22,7 @@ export function Notepad({ repo }: { repo?: GitHubRepo }) {
     return () => { live = false; };
   }, [repo]);
   const menus = [
-    { label: 'File', items: [{ label: 'New' }, { label: 'Open...', disabled: true }, { label: 'Save', disabled: true }, { separator: true, label: '' }, { label: 'Page Setup...', disabled: true }, { label: 'Print...', action: () => window.print() }] },
+    { label: 'File', items: [{ label: 'New' }, { label: 'Open...', disabled: true }, { label: 'Save', disabled: true }, { separator: true, label: '' }, { label: 'Page Setup...', disabled: true }, { label: 'Print...', action: print }] },
     { label: 'Edit', items: [{ label: 'Undo', disabled: true }, { separator: true, label: '' }, { label: 'Select All', action: () => window.getSelection()?.selectAllChildren(document.querySelector('.notepad-document')!) }] },
     { label: 'Format', items: [{ label: 'Word Wrap', checked: wrap, action: () => setWrap(value => !value) }] },
     { label: 'View', items: [{ label: 'Render Markdown', checked: rendered, action: () => setRendered(value => !value) }] },

@@ -1,36 +1,84 @@
-import { useState } from 'react';
-import { profile } from '../../data/profile';
-import { education } from '../../data/education';
-import { experience } from '../../data/experience';
-import { skillGroups } from '../../data/skills';
+import { useEffect, useMemo, useState } from 'react';
+import cvDocument from 'virtual:cv-document';
+import { useSystem } from '../../context/SystemContext';
+import { IconGlyph } from '../common/IconGlyph';
 import { MenuBar } from '../common/MenuBar';
+
+const formatFileSize = (bytes: number) => `${Math.max(1, Math.round(bytes / 1024))} KB`;
 
 export function WordPadCV() {
   const [zoom, setZoom] = useState(90);
-  const saveHtml = () => {
-    const documentHtml = `<!doctype html><meta charset="utf-8"><title>${profile.name} CV</title><body>${document.querySelector('.cv-paper')?.innerHTML || ''}</body>`;
+  const [loading, setLoading] = useState(Boolean(cvDocument));
+  const { play } = useSystem();
+  const pdfUrl = useMemo(
+    () => cvDocument ? `${cvDocument.url}#toolbar=0&navpanes=0&view=FitH&zoom=${zoom}` : '',
+    [zoom],
+  );
+
+  useEffect(() => {
+    if (cvDocument) setLoading(true);
+  }, [pdfUrl]);
+
+  const download = () => {
+    if (!cvDocument) return;
     const anchor = document.createElement('a');
-    anchor.href = URL.createObjectURL(new Blob([documentHtml], { type: 'text/html' }));
-    anchor.download = 'alistair-bishop-cv.html'; anchor.click(); URL.revokeObjectURL(anchor.href);
+    anchor.href = cvDocument.url;
+    anchor.download = cvDocument.fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
   };
-  const download = async () => {
-    try {
-      const response = await fetch('./documents/alistair-bishop-cv.pdf', { method: 'HEAD' });
-      if (!response.ok) throw new Error();
-      const anchor = document.createElement('a'); anchor.href = './documents/alistair-bishop-cv.pdf'; anchor.download = 'alistair-bishop-cv.pdf'; anchor.click();
-    } catch { saveHtml(); }
+
+  const print = () => {
+    if (!cvDocument) return;
+    play('print');
+    window.open(`${cvDocument.url}#toolbar=1`, '_blank', 'noopener,noreferrer');
   };
+
+  const openPdf = () => {
+    if (cvDocument) window.open(cvDocument.url, '_blank', 'noopener,noreferrer');
+  };
+
+  const fileMenu = {
+    label: 'File',
+    items: [
+      { label: 'Open PDF in new window', disabled: !cvDocument, action: openPdf },
+      { label: 'Save As...', disabled: !cvDocument, action: download },
+      { label: 'Print...', disabled: !cvDocument, action: print },
+    ],
+  };
+
   return <div className="wordpad app-fill">
-    <MenuBar menus={[{ label: 'File', items: [{ label: 'Save As...', action: saveHtml }, { label: 'Print...', action: () => window.print() }] }, { label: 'Edit' }, { label: 'View' }, { label: 'Insert' }, { label: 'Format' }, { label: 'Help' }]} />
-    <div className="wordpad-toolbar"><button onClick={saveHtml} title="Save">💾</button><button onClick={() => window.print()} title="Print">🖨️</button><i /><select aria-label="Font"><option>Arial</option><option>Times New Roman</option></select><select aria-label="Font size"><option>10</option><option>12</option><option>14</option></select><button><b>B</b></button><button><i>I</i></button><button><u>U</u></button><button onClick={download} className="download-cv">⬇ Download CV</button></div>
+    <MenuBar menus={[fileMenu, { label: 'Edit' }, { label: 'View' }, { label: 'Help' }]} />
+    <div className="wordpad-toolbar">
+      <button onClick={download} disabled={!cvDocument} title="Save a copy"><IconGlyph name="save" size={21} /></button>
+      <button data-xp-sound onClick={print} disabled={!cvDocument} title="Print PDF"><IconGlyph name="printer" size={21} /></button>
+      <i />
+      <button onClick={() => setZoom(value => Math.max(50, value - 10))} disabled={!cvDocument} title="Zoom out">-</button>
+      <button onClick={() => setZoom(value => Math.min(160, value + 10))} disabled={!cvDocument} title="Zoom in">+</button>
+      <span className="cv-document-name">{cvDocument?.fileName || 'No PDF found'}</span>
+      <button onClick={download} disabled={!cvDocument} className="download-cv"><IconGlyph name="cv" size={18} /> Download CV</button>
+    </div>
     <div className="ruler"><span /><span /><span /><span /><span /><span /><span /></div>
-    <div className="document-workspace"><article className="cv-paper" style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }}>
-      <header><h1>{profile.name}</h1><p>{profile.headline} · {profile.university}</p><p>{profile.email} · github.com/{profile.githubUsername}</p></header>
-      <h2>Profile</h2><p>{profile.summary}</p>
-      <h2>Experience</h2>{experience.map(item => <section key={item.role}><div><h3>{item.role}</h3><strong>{item.period}</strong></div><em>{item.organisation}</em><p>{item.details}</p></section>)}
-      <h2>Education</h2>{education.map(item => <section key={item.qualification}><div><h3>{item.qualification}</h3><strong>{item.period}</strong></div><em>{item.institution}</em><p>{item.details}</p></section>)}
-      <h2>Technical Skills</h2>{skillGroups.map(group => <p key={group.name}><b>{group.name}:</b> {group.items.join(' · ')}</p>)}
-    </article></div>
-    <div className="wordpad-status"><span>Page 1</span><span>English (United Kingdom)</span><label>Zoom <input type="range" min="60" max="130" value={zoom} onChange={event => setZoom(Number(event.target.value))} /> {zoom}%</label></div>
+    <div className="document-workspace cv-document-workspace">
+      {!cvDocument ? <div className="cv-missing">
+        <IconGlyph name="error" size={48} />
+        <div><h2>No CV found</h2><p>Add one PDF file to <code>public/documents</code>, then restart the site.</p></div>
+      </div> : <>
+        {loading && <div className="cv-loading"><div className="xp-spinner" />Opening {cvDocument.fileName}...</div>}
+        <iframe
+          className="cv-pdf-frame"
+          key={pdfUrl}
+          src={pdfUrl}
+          title={`CV - ${cvDocument.fileName}`}
+          onLoad={() => setLoading(false)}
+        />
+      </>}
+    </div>
+    <div className="wordpad-status">
+      <span>{cvDocument ? cvDocument.fileName : 'No document'}</span>
+      <span>{cvDocument ? `PDF Document - ${formatFileSize(cvDocument.size)}` : 'Add a PDF to the documents folder'}</span>
+      <label>Zoom <input type="range" min="50" max="160" step="10" value={zoom} disabled={!cvDocument} onChange={event => setZoom(Number(event.target.value))} /> {zoom}%</label>
+    </div>
   </div>;
 }

@@ -27,14 +27,14 @@ export function ExplorerShell({ title, address, children, count, view, setView, 
       { label: 'Help', items: [{ label: `About ${title}`, action: () => undefined }] },
     ]} />
     <div className="explorer-toolbar">
-      <button disabled={history <= 0} onClick={() => setHistory(Math.max(0, history - 1))}><b>←</b><span>Back</span></button>
-      <button disabled><b>→</b></button>
-      <button><b className="up-symbol">↥</b></button><i />
+      <button disabled={history <= 0} onClick={() => setHistory(Math.max(0, history - 1))}><IconGlyph name="back" size={26} /><span>Back</span></button>
+      <button disabled><IconGlyph name="forward" size={26} /></button>
+      <button><IconGlyph name="up" size={26} /></button><i />
       <button><IconGlyph name="search" size={25} /><span>Search</span></button>
       <button><IconGlyph name="folder" size={25} /><span>Folders</span></button><i />
       <button onClick={onRefresh} aria-label="Refresh"><span className="view-grid">▦</span></button>
     </div>
-    <div className="address-row"><label>Address</label><div><IconGlyph name="folder" size={18} /><span>{address}</span><button>⌄</button></div><button className="go-button"><span>➜</span> Go</button></div>
+    <div className="address-row"><label>Address</label><div><IconGlyph name="folder" size={18} /><span>{address}</span><button>⌄</button></div><button className="go-button"><IconGlyph name="go" size={19} /> Go</button></div>
     <div className="explorer-body">
       <aside className="explorer-sidebar">
         <section><h3>File and Folder Tasks <span>⌃</span></h3><button>Make a new folder</button><button>Publish this folder to the Web</button><button>Share this folder</button></section>

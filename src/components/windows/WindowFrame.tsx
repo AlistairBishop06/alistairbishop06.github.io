@@ -73,8 +73,8 @@ export function WindowFrame({ win, active, children, onClose, onFocus, onMinimiz
     <header className="title-bar" onPointerDown={beginMove} onPointerMove={move} onPointerUp={end} onDoubleClick={onMaximize}>
       <span className="title-text"><IconGlyph name={win.icon || 'app'} size={17} /> {win.title}</span>
       <span className="window-controls">
-        <button aria-label={`Minimize ${win.title}`} onClick={onMinimize}><span>_</span></button>
-        <button aria-label={`${win.maximized ? 'Restore' : 'Maximize'} ${win.title}`} onClick={onMaximize}><span>{win.maximized ? '❐' : '□'}</span></button>
+        <button data-xp-sound aria-label={`Minimize ${win.title}`} onClick={onMinimize}><span>_</span></button>
+        <button data-xp-sound aria-label={`${win.maximized ? 'Restore' : 'Maximize'} ${win.title}`} onClick={onMaximize}><span>{win.maximized ? '❐' : '□'}</span></button>
         <button className="close" aria-label={`Close ${win.title}`} onClick={onClose}><span>×</span></button>
       </span>
     </header>

@@ -16,5 +16,5 @@ export function RunDialog({ close }: { close: () => void }) {
     if (/^https?:\/\//.test(command)) { openBrowser({ title: command, url: command }); close(); return; }
     notify('Run', `Windows cannot find '${value}'. Make sure you typed the name correctly, and then try again.`, 'error');
   };
-  return <form className="run-dialog app-fill" onSubmit={run}><div><IconGlyph name="app" size={38} /><p>Type the name of a program, folder, document, or Internet resource, and Windows will open it for you.</p></div><label>Open: <input autoFocus value={value} onChange={event => setValue(event.target.value)} /></label><footer><button type="submit">OK</button><button type="button" onClick={close}>Cancel</button><button type="button" disabled>Browse...</button></footer></form>;
+  return <form className="run-dialog app-fill" onSubmit={run}><div><IconGlyph name="run" size={38} /><p>Type the name of a program, folder, document, or Internet resource, and Windows will open it for you.</p></div><label>Open: <input autoFocus value={value} onChange={event => setValue(event.target.value)} /></label><footer><button type="submit">OK</button><button type="button" onClick={close}>Cancel</button><button type="button" disabled>Browse...</button></footer></form>;
 }

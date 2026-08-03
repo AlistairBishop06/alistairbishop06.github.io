@@ -19,7 +19,7 @@ interface SystemContextValue {
   play: (name: SoundName) => void;
   open: (kind: WindowKind, payload?: Record<string, unknown>, title?: string) => void;
   openBrowser: (target?: BrowserTarget) => void;
-  notify: (title: string, message: string, type?: 'info' | 'error') => void;
+  notify: (title: string, message: string, type?: 'info' | 'error', withSound?: boolean) => void;
   restart: () => void;
   shutDown: () => void;
   triggerBlueScreen: () => void;

@@ -62,13 +62,13 @@ export function InternetExplorer({ initialTarget, requestId }: { initialTarget?:
   return <div className="ie app-fill">
     <MenuBar menus={menus} />
     <div className="ie-toolbar">
-      <button disabled={!canBack} onClick={() => moveHistory(-1)}><b>←</b><span>Back</span></button><button disabled={!canForward} onClick={() => moveHistory(1)}>→</button>
-      <button onClick={() => update({ embed: false, loading: false })}><b className="stop">×</b><span>Stop</span></button>
-      <button onClick={refresh}><b className="refresh">↻</b><span>Refresh</span></button>
-      <button onClick={() => go('xp://home')}><b>🏠</b><span>Home</span></button><i />
-      <button onClick={() => setFavoritesOpen(value => !value)}><b>★</b><span>Favorites</span></button>
+      <button disabled={!canBack} onClick={() => moveHistory(-1)}><IconGlyph name="back" size={27} /><span>Back</span></button><button disabled={!canForward} onClick={() => moveHistory(1)}><IconGlyph name="forward" size={27} /></button>
+      <button onClick={() => update({ embed: false, loading: false })}><IconGlyph name="stop" size={25} /><span>Stop</span></button>
+      <button onClick={refresh}><IconGlyph name="refresh" size={25} /><span>Refresh</span></button>
+      <button onClick={() => go('xp://home')}><IconGlyph name="home" size={26} /><span>Home</span></button><i />
+      <button onClick={() => setFavoritesOpen(value => !value)}><IconGlyph name="favorites" size={25} /><span>Favorites</span></button>
     </div>
-    <div className="address-row ie-address"><label>Address</label><div><IconGlyph name="browser" size={18} /><input value={address} onChange={event => setAddress(event.target.value)} onKeyDown={event => event.key === 'Enter' && go()} /><button>⌄</button></div><button className="go-button" onClick={() => go()}><span>➜</span> Go</button></div>
+    <div className="address-row ie-address"><label>Address</label><div><IconGlyph name="browser" size={18} /><input value={address} onChange={event => setAddress(event.target.value)} onKeyDown={event => event.key === 'Enter' && go()} /><button>⌄</button></div><button className="go-button" onClick={() => go()}><IconGlyph name="go" size={19} /> Go</button></div>
     <div className="browser-tabs" role="tablist">
       {tabs.map(tab => <button role="tab" aria-selected={tab.id === activeId} className={tab.id === activeId ? 'active' : ''} key={tab.id} onClick={() => setActiveId(tab.id)}>
         <IconGlyph name="browser" size={15} /><span>{tab.title}</span><i onClick={event => { event.stopPropagation(); closeTab(tab.id); }}>×</i>
@@ -76,14 +76,14 @@ export function InternetExplorer({ initialTarget, requestId }: { initialTarget?:
       <button className="new-tab" aria-label="New tab" onClick={() => newTab()}>＋</button>
     </div>
     <div className="browser-viewport">
-      {favoritesOpen && <aside className="favorites-pane"><header>Favorites <button onClick={() => setFavoritesOpen(false)}>×</button></header><button onClick={() => newTab({ title: 'Alistair on GitHub', url: 'https://github.com/alistairbishop06' })}>⭐ Alistair on GitHub</button><button onClick={() => newTab(home)}>🏠 Portfolio Home</button></aside>}
+      {favoritesOpen && <aside className="favorites-pane"><header>Favorites <button onClick={() => setFavoritesOpen(false)}>×</button></header><button onClick={() => newTab({ title: 'Alistair on GitHub', url: 'https://github.com/alistairbishop06' })}><IconGlyph name="favorites" size={17} /> Alistair on GitHub</button><button onClick={() => newTab(home)}><IconGlyph name="home" size={17} /> Portfolio Home</button></aside>}
       {active.url === 'xp://home' ? <BrowserHome onNavigate={newTab} /> : active.embed ? <div className="iframe-wrap">
         {active.loading && <div className="browser-loading"><div className="xp-spinner" />Opening page...</div>}
         <iframe key={`${active.id}-${active.reloadKey}`} title={active.title} src={active.url} onLoad={() => update({ loading: false })} onError={() => update({ embed: false, loading: false })} sandbox="allow-forms allow-modals allow-popups allow-scripts allow-same-origin" />
         <button className="embed-fallback" onClick={() => update({ embed: false, loading: false })}>Page blank or refused to connect?</button>
       </div> : <BrowserInfoPage tab={active} tryEmbed={() => update({ embed: true, loading: true })} />}
     </div>
-    <div className="ie-status"><span>🌐 {active.loading ? 'Opening page...' : 'Done'}</span><span>Internet</span><span className={active.loading ? 'loading-flag' : ''}>▰</span></div>
+    <div className="ie-status"><span><IconGlyph name="globe" size={16} /> {active.loading ? 'Opening page...' : 'Done'}</span><span>Internet</span><span className={active.loading ? 'loading-flag' : ''}>▰</span></div>
   </div>;
 }
 

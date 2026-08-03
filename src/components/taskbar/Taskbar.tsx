@@ -32,27 +32,27 @@ export function Taskbar({ windows, toggleWindow, showDesktop }: { windows: XPWin
   return <footer className="taskbar">
     <div className="start-zone">
       {startOpen && <StartMenu close={() => setStartOpen(false)} />}
-      <button className={`start-button ${startOpen ? 'pressed' : ''}`} onClick={() => { setStartOpen(value => !value); play('start'); }}>
+      <button data-xp-sound className={`start-button ${startOpen ? 'pressed' : ''}`} onClick={() => { setStartOpen(value => !value); play('start'); }}>
         <span className="windows-flag"><i /><i /><i /><i /></span><b>start</b>
       </button>
     </div>
     <div className="quick-launch">
       <button aria-label="Show Desktop" onClick={showDesktop}><span className="tiny-desktop" /></button>
-      <button aria-label="Internet Explorer" onClick={() => open('browser')}><IconGlyph name="browser" size={19} /></button>
-      <button aria-label="My Projects" onClick={() => open('projects')}><IconGlyph name="folder" size={19} /></button>
+      <button data-xp-sound aria-label="Internet Explorer" onClick={() => { play('window'); open('browser'); }}><IconGlyph name="browser" size={19} /></button>
+      <button data-xp-sound aria-label="My Projects" onClick={() => { play('folder'); open('projects'); }}><IconGlyph name="folder" size={19} /></button>
     </div>
     <div className="task-buttons">
-      {windows.map(win => <button key={win.id} className={!win.minimized && win.z === topZ ? 'active' : ''} onClick={() => toggleWindow(win.id)}>
+      {windows.map(win => <button data-xp-sound key={win.id} className={!win.minimized && win.z === topZ ? 'active' : ''} onClick={() => { play(win.minimized ? 'maximize' : 'minimize'); toggleWindow(win.id); }}>
         <IconGlyph name={win.icon || 'app'} size={17} /><span>{win.title}</span>
       </button>)}
     </div>
     <div className="system-tray">
       <button className="tray-icon" aria-label={settings.soundEnabled ? 'Mute sound' : 'Enable sound'} onClick={() => setSettings(current => ({ ...current, soundEnabled: !current.soundEnabled }))}>
-        <span>{settings.soundEnabled ? (settings.volume > .55 ? '🔊' : '🔉') : '🔇'}</span>
+        <IconGlyph name={settings.soundEnabled ? 'sound' : 'mute'} size={17} />
       </button>
-      <span title="Network connected">📡</span>
+      <span title="Network connected"><IconGlyph name="network" size={17} /></span>
       <button className="clock" title={now.toLocaleDateString(undefined, { dateStyle: 'full' })} onClick={clickClock}>{now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</button>
     </div>
-    <button className="show-desktop-edge" aria-label="Show Desktop" onClick={showDesktop} />
+    <button data-xp-sound className="show-desktop-edge" aria-label="Show Desktop" onClick={() => { play('minimize'); showDesktop(); }} />
   </footer>;
 }

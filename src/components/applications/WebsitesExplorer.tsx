@@ -30,7 +30,7 @@ export function WebsitesExplorer() {
   const launch = (site: DeployedWebsite) => { play('folder'); openBrowser({ title: site.name, url: site.url, description: site.description, repository: site.repository }); };
   return <ExplorerShell title="Deployed Websites" address="C:\\Documents and Settings\\Alistair\\Favorites\\Web Apps" count={websites.length} view={view} setView={setView} status={progress || 'Internet shortcuts'}>
     {websites.map(site => <button key={site.url} className={`file-item website-item ${selected === site.url ? 'selected' : ''}`} onClick={() => setSelected(site.url)} onDoubleClick={() => launch(site)} onKeyDown={event => event.key === 'Enter' && launch(site)}>
-      <span className="shortcut-icon"><IconGlyph name="browser" size={view === 'large' ? 43 : 25} /><small>↗</small></span>
+      <span className="shortcut-icon"><IconGlyph name="websites" size={view === 'large' ? 43 : 25} /><small>↗</small></span>
       <span className="file-name">{site.name}</span><span className="file-type">Internet Shortcut</span><span className="file-date">{site.featured ? 'Featured' : ''}</span><span className="file-stars" />
       <span className="file-description">{site.description || site.url}</span>
     </button>)}
