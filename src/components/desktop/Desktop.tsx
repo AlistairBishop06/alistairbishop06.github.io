@@ -3,6 +3,7 @@ import type { IconName, WindowKind } from '../../types';
 import { useSystem } from '../../context/SystemContext';
 import { DesktopIcon } from './DesktopIcon';
 import { DesktopContextMenu } from './DesktopContextMenu';
+import { resolveWallpaper } from '../../data/wallpapers';
 
 const icons: Array<{ id: string; name: string; icon: IconName; kind: WindowKind }> = [
   { id: 'projects', name: 'My Projects', icon: 'folder', kind: 'projects' },
@@ -23,6 +24,7 @@ export function Desktop() {
   const [iconsVisible, setIconsVisible] = useState(true);
   const sequence = useRef<string[]>([]);
   const computerClicks = useRef(0);
+  const wallpaper = resolveWallpaper(settings.wallpaper);
 
   useEffect(() => {
     const konami = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
@@ -54,7 +56,7 @@ export function Desktop() {
 
   return <main
     className="desktop"
-    style={{ backgroundImage: settings.wallpaper === 'hills' ? "url('./assets/wallpapers/rolling-hills.jpg')" : undefined }}
+    style={{ backgroundImage: wallpaper ? `url("${wallpaper.url}")` : undefined }}
     onClick={() => { setSelected(null); setContext(null); }}
     onContextMenu={event => { event.preventDefault(); setContext({ x: event.clientX, y: event.clientY }); }}
   >

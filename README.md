@@ -63,7 +63,7 @@ The filename can be anything. The CV resolver discovers it automatically and use
 
 ### Icons, wallpaper and sounds
 
-- The current wallpaper is `public/assets/wallpapers/rolling-hills.jpg`.
+- Display Properties automatically lists every supported image in `public/assets/wallpapers/` (`.avif`, `.bmp`, `.gif`, `.jpeg`, `.jpg`, `.png`, `.svg`, and `.webp`). Filenames become readable option labels, and changes reload the development site automatically.
 - The shared icon map lives in `src/components/common/IconGlyph.tsx`. Web-sized icons are in `public/assets/icons/ui/`; the full-resolution source collection is preserved in `assets/icon-library/` and is excluded from the deployed bundle.
 - Sound cues are local `.wav` files in `public/assets/sounds/`, mapped by event and volume in `src/hooks/useSound.ts`. Replace a file or adjust the manifest there to customise a cue. Browser autoplay rules mean lifecycle audio begins only after the visitor's first interaction.
 

@@ -8,8 +8,9 @@ import { Desktop } from './components/desktop/Desktop';
 import { Taskbar } from './components/taskbar/Taskbar';
 import { WindowManager } from './components/windows/WindowManager';
 import { StartupSequence } from './components/startup/StartupSequence';
+import { defaultWallpaperId } from './data/wallpapers';
 
-const defaultSettings: SystemSettings = { wallpaper: 'hills', theme: 'luna', soundEnabled: true, volume: .7, highContrast: false, textScale: 1, pointer: 'classic', username: 'Alistair Bishop' };
+const defaultSettings: SystemSettings = { wallpaper: defaultWallpaperId, theme: 'luna', soundEnabled: true, volume: .7, highContrast: false, textScale: 1, pointer: 'classic', username: 'Alistair Bishop' };
 export default function App() {
   const [settings, setSettings] = useLocalStorage('xp-settings', defaultSettings);
   const [skipStartup, setSkipStartup] = useLocalStorage('xp-skip-startup', false);
@@ -61,7 +62,7 @@ export default function App() {
   if (poweredOff) return <main className="powered-off"><p>It is now safe to turn off your computer.</p><button onClick={() => { loginPlayed.current = true; setPoweredOff(false); setStarted(false); play('startup'); window.setTimeout(() => setStarted(true), 3500); }}>Turn Portfolio XP back on</button></main>;
   if (!started) return <StartupSequence onComplete={() => setStarted(true)} onSkip={() => { setSkipStartup(true); setStarted(true); }} />;
   return <SystemContext.Provider value={context}>
-    <div className={`xp-system theme-${settings.theme} wallpaper-${settings.wallpaper} pointer-${settings.pointer} ${settings.highContrast ? 'high-contrast' : ''}`} style={{ fontSize: `${settings.textScale * 13}px` }}>
+    <div className={`xp-system theme-${settings.theme} pointer-${settings.pointer} ${settings.highContrast ? 'high-contrast' : ''}`} style={{ fontSize: `${settings.textScale * 13}px` }}>
       <Desktop />
       <WindowManager windows={manager.windows} close={manager.closeWindow} focus={manager.focusWindow} minimize={manager.minimizeWindow} maximize={manager.toggleMaximize} updateRect={manager.updateRect} />
       <Taskbar windows={manager.windows} toggleWindow={manager.taskbarToggle} showDesktop={manager.showDesktop} />
