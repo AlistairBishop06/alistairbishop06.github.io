@@ -16,7 +16,7 @@ export function StartMenu({ close }: { close: () => void }) {
   const { open, settings, restart } = useSystem();
   const launch = (kind: WindowKind) => { open(kind); close(); };
   return <aside className="start-menu" aria-label="Start menu">
-    <header><IconGlyph name="user" size={46} /><strong>{settings.username || profile.name}</strong></header>
+    <header><img className="start-profile-image" src={profile.profileImage} alt="" /><strong>{settings.username || profile.name}</strong></header>
     <div className="start-columns">
       <div className="start-left">
         {left.map(([label, icon, kind], index) => <button key={label} className={index < 2 ? 'primary' : ''} onClick={() => launch(kind)}>

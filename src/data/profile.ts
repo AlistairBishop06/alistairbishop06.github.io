@@ -1,6 +1,7 @@
 export const profile = {
   name: 'Alistair Bishop',
   username: 'Alistair',
+  profileImage: './assets/images/AlistairProfile.jpg',
   headline: 'Computer Science student',
   university: 'University of Exeter',
   location: 'Leckhampstead, Berkshire, United Kingdom',

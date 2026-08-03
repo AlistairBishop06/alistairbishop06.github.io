@@ -49,7 +49,7 @@ Add, remove or reorder entries in that file. Featured entries sort ahead of auto
 
 ### Profile image
 
-Put the image in `public/assets/images/`, then replace the `IconGlyph` profile placeholder in `AboutMe.tsx` and `StartMenu.tsx` with an `<img>` using a relative `/assets/images/...` path.
+Put the image in `public/assets/images/`, then set `profileImage` in `src/data/profile.ts`. The same image is used by the About Me window and Start menu.
 
 ### CV
 

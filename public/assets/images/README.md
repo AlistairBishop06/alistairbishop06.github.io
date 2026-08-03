@@ -1,3 +1,3 @@
 # Images
 
-Add an optional profile image here, then replace the `IconGlyph` placeholder in `src/components/applications/AboutMe.tsx` and `StartMenu.tsx`.
+`AlistairProfile.jpg` is the profile image used by the About Me window and Start menu. Its path is configured centrally in `src/data/profile.ts`.
