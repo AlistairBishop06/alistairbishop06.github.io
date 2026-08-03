@@ -11,7 +11,10 @@ export function RunDialog({ close }: { close: () => void }) {
     event.preventDefault(); const command = value.trim().toLowerCase();
     if (commands[command]) { open(commands[command]); close(); return; }
     if (['github', 'github.com/alistairbishop06', 'https://github.com/alistairbishop06'].includes(command)) {
-      const target: BrowserTarget = { title: 'Alistair on GitHub', url: 'https://github.com/alistairbishop06' }; openBrowser(target); close(); return;
+      window.open('https://github.com/alistairbishop06', '_blank', 'noopener,noreferrer'); close(); return;
+    }
+    if (/^https?:\/\/(?:www\.)?github\.com(?:\/|$)/i.test(value.trim())) {
+      window.open(value.trim(), '_blank', 'noopener,noreferrer'); close(); return;
     }
     if (/^https?:\/\//.test(command)) { openBrowser({ title: command, url: command }); close(); return; }
     notify('Run', `Windows cannot find '${value}'. Make sure you typed the name correctly, and then try again.`, 'error');

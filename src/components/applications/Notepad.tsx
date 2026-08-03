@@ -15,7 +15,7 @@ export function Notepad({ repo, file }: { repo?: GitHubRepo; file?: NotepadFile 
   const [error, setError] = useState('');
   const [rendered, setRendered] = useState(false);
   const [wrap, setWrap] = useState(true);
-  const { openBrowser, play } = useSystem();
+  const { play } = useSystem();
   const print = () => { play('print'); window.setTimeout(() => window.print(), 80); };
   useEffect(() => {
     let live = true;
@@ -58,7 +58,7 @@ export function Notepad({ repo, file }: { repo?: GitHubRepo; file?: NotepadFile 
       {!loading && !error && (rendered
         ? <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml components={{ a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer">{children}</a> }}>{content}</ReactMarkdown>
         : <pre>{content}</pre>)}
-      {repo && !loading && <button className="click-me" onClick={() => openBrowser({ title: repo.name, url: repo.html_url, description: repo.description || undefined, repo, readme: content })}>CLICK ME</button>}
+      {repo && !loading && <button className="click-me" onClick={() => window.open(repo.html_url, '_blank', 'noopener,noreferrer')}>CLICK ME</button>}
     </div>
     <div className="notepad-status"><span>Ln 1, Col 1</span><span>100%</span><span>Windows (CRLF)</span><span>UTF-8</span></div>
   </div>;

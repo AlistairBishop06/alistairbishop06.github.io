@@ -16,7 +16,7 @@ export function CommandPrompt({ close }: { close: () => void }) {
   const [matrix, setMatrix] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   const { repos } = useGitHubRepositories();
-  const { open, openBrowser, triggerBlueScreen } = useSystem();
+  const { open, triggerBlueScreen } = useSystem();
   useEffect(() => end.current?.scrollIntoView(), [lines]);
   const output = (value: string | string[]) => setLines(current => [...current, ...(Array.isArray(value) ? value : value.split('\n'))]);
   const run = (event: FormEvent) => {
@@ -32,7 +32,7 @@ export function CommandPrompt({ close }: { close: () => void }) {
       case 'experience': output(experience.map(item => `${item.period}  ${item.role} — ${item.organisation}`)); break;
       case 'education': output(education.map(item => `${item.qualification} — ${item.institution}`)); break;
       case 'contact': output(`${profile.email}\ngithub.com/${profile.githubUsername}`); break;
-      case 'github': openBrowser({ title: 'Alistair on GitHub', url: `https://github.com/${profile.githubUsername}` }); output('Opening GitHub in Internet Explorer...'); break;
+      case 'github': window.open(`https://github.com/${profile.githubUsername}`, '_blank', 'noopener,noreferrer'); output('Opening GitHub in a new browser tab...'); break;
       case 'clear': setLines([]); break;
       case 'dir': output((dirs[cwd] || (cwd === 'C:\\Projects' ? projects : [])).map(name => `07/31/2026  12:00 PM    <DIR>          ${name}`).concat(`${projects.length} File(s)`)); break;
       case 'tree': output(['C:\\', '├── Projects', '├── Websites', '├── Skills', '└── Experience']); break;

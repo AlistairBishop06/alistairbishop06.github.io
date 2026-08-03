@@ -16,7 +16,10 @@ export function ProjectsExplorer() {
   const [filter, setFilter] = useState('');
   const { open, play } = useSystem();
   const visible = useMemo(() => sortRepositories(repos, includeForks).filter(repo => repo.name.toLowerCase().includes(filter.toLowerCase())), [repos, includeForks, filter]);
-  const openRepo = (repo: GitHubRepo) => { play('folder'); open('notepad', { repo }, `${repo.name} - Notepad`); };
+  const openRepo = (repo: GitHubRepo) => {
+    play('folder');
+    open('notepad', { repo }, `${repo.name} - Notepad`);
+  };
   return <ExplorerShell
     title="My Projects" address="P:\\GitHub\\Repositories" count={visible.length} view={view} setView={setView} onRefresh={reload}
     status={loading ? 'Contacting GitHub...' : source === 'live' ? 'Live data from GitHub' : source === 'stale' ? 'Offline cache (stale)' : 'Local cache'}

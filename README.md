@@ -83,7 +83,7 @@ README lookup supports `README.md`, `README.MD`, `readme.md`, `README`, and `rea
 
 The Deployed Websites folder shows one entry for each non-fork repository with a valid external URL in GitHub's Website (`homepage`) field. It does not invent GitHub Pages addresses or scrape links from READMEs. Duplicate website URLs are removed. Entries in `src/data/deployedWebsites.ts` can rename, describe, iconise or feature a matching repository, but cannot create an extra website by themselves.
 
-Modern sites commonly send `X-Frame-Options` or Content Security Policy headers that prohibit iframes. Internet Explorer therefore always creates an internal tab and shows its real address. GitHub links open as a local repository information page; deployment links attempt the live iframe and include a visible fallback control. The information page has an explicit “Open in real browser” button.
+Modern sites commonly send `X-Frame-Options` or Content Security Policy headers that prohibit iframes. GitHub projects first open their README in Notepad; the green “CLICK ME” button then opens the repository in a real browser tab. Internet Explorer starts at Google's iframe-compatible homepage, while deployment links attempt the live internal iframe and include a visible fallback control.
 
 ## Contact form
 
