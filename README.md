@@ -81,7 +81,7 @@ README lookup supports `README.md`, `README.MD`, `readme.md`, `README`, and `rea
 
 ## Deployment discovery and iframe restrictions
 
-The Deployed Websites folder merges the manual file with URLs found in repository `homepage` fields, GitHub Pages metadata, and README links matching common hosts including Vercel, Netlify, GitHub Pages, Render, Railway and Fly.io. URLs are deduplicated.
+The Deployed Websites folder shows one entry for each non-fork repository with a valid external URL in GitHub's Website (`homepage`) field. It does not invent GitHub Pages addresses or scrape links from READMEs. Duplicate website URLs are removed. Entries in `src/data/deployedWebsites.ts` can rename, describe, iconise or feature a matching repository, but cannot create an extra website by themselves.
 
 Modern sites commonly send `X-Frame-Options` or Content Security Policy headers that prohibit iframes. Internet Explorer therefore always creates an internal tab and shows its real address. GitHub links open as a local repository information page; deployment links attempt the live iframe and include a visible fallback control. The information page has an explicit “Open in real browser” button.
 

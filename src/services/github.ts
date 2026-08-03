@@ -4,7 +4,6 @@ import { fallbackProjects } from '../data/fallbackProjects';
 
 const API = 'https://api.github.com';
 const CACHE_TTL = 30 * 60 * 1000;
-const DEPLOYMENT_DOMAINS = /https?:\/\/[^\s)<\]"']+(?:vercel\.app|netlify\.app|github\.io|onrender\.com|render\.com|railway\.app|fly\.dev)[^\s)<\]"']*/gi;
 
 type Cache<T> = { timestamp: number; value: T };
 
@@ -89,38 +88,35 @@ export async function getRepositoryReadme(repo: GitHubRepo, force = false): Prom
   throw new Error('No README file was found in this repository.');
 }
 
-function normaliseUrl(url: string) {
-  return url.replace(/[.,;:]+$/, '').replace(/\/$/, '');
+export function normaliseWebsiteUrl(rawUrl: string): string | null {
+  try {
+    const url = new URL(rawUrl.trim());
+    if (!['http:', 'https:'].includes(url.protocol)) return null;
+    if (['github.com', 'www.github.com', 'api.github.com'].includes(url.hostname.toLowerCase())) return null;
+    url.hash = '';
+    url.hostname = url.hostname.toLowerCase();
+    url.pathname = url.pathname.replace(/\/+$/, '') || '/';
+    return url.toString().replace(/\/$/, '');
+  } catch {
+    return null;
+  }
 }
 
-export async function discoverDeployedWebsites(repos: GitHubRepo[], onProgress?: (done: number, total: number) => void): Promise<DeployedWebsite[]> {
+export async function discoverDeployedWebsites(repos: GitHubRepo[]): Promise<DeployedWebsite[]> {
   const found = new Map<string, DeployedWebsite>();
-  const add = (site: DeployedWebsite) => {
-    if (!/^https?:\/\//i.test(site.url)) return;
-    const url = normaliseUrl(site.url);
-    if (!found.has(url.toLowerCase())) found.set(url.toLowerCase(), { ...site, url });
-  };
-
-  repos.forEach(repo => {
-    if (repo.homepage) add({ name: repo.name, url: repo.homepage, description: repo.description ?? undefined, repository: repo.html_url });
-    if (repo.has_pages) add({ name: `${repo.name} — GitHub Pages`, url: `https://${repo.full_name.split('/')[0]}.github.io/${repo.name}`, description: repo.description ?? undefined, repository: repo.html_url });
-  });
-
-  let done = 0;
-  const queue = [...repos];
-  const worker = async () => {
-    while (queue.length) {
-      const repo = queue.shift()!;
-      try {
-        const readme = await getRepositoryReadme(repo);
-        for (const match of readme.matchAll(DEPLOYMENT_DOMAINS)) {
-          add({ name: repo.name, url: match[0], description: repo.description ?? undefined, repository: repo.html_url });
-        }
-      } catch { /* repositories without READMEs are normal */ }
-      done += 1;
-      onProgress?.(done, repos.length);
+  for (const repo of repos) {
+    if (repo.fork || !repo.homepage) continue;
+    const url = normaliseWebsiteUrl(repo.homepage);
+    if (!url) continue;
+    const urlKey = url.toLowerCase();
+    if (!found.has(urlKey)) {
+      found.set(urlKey, {
+        name: repo.name,
+        url,
+        description: repo.description ?? undefined,
+        repository: repo.html_url,
+      });
     }
-  };
-  await Promise.all(Array.from({ length: Math.min(4, repos.length) }, worker));
+  }
   return [...found.values()];
 }

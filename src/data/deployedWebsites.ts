@@ -1,6 +1,7 @@
 import type { DeployedWebsite } from '../types';
 
-// Manual entries are merged with deployment URLs discovered from GitHub.
+// Optional presentation overrides for repositories whose GitHub Website field
+// contains a deployment URL. These entries do not create websites by themselves.
 export const deployedWebsites: DeployedWebsite[] = [
   {
     name: 'Springfield Shelf',

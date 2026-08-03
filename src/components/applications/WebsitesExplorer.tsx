@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { DeployedWebsite } from '../../types';
 import { deployedWebsites } from '../../data/deployedWebsites';
 import { useGitHubRepositories } from '../../hooks/useGitHubRepositories';
-import { discoverDeployedWebsites } from '../../services/github';
+import { discoverDeployedWebsites, normaliseWebsiteUrl } from '../../services/github';
 import { useSystem } from '../../context/SystemContext';
 import { IconGlyph } from '../common/IconGlyph';
 import { ExplorerShell, type ExplorerView } from './ExplorerShell';
@@ -17,14 +17,31 @@ export function WebsitesExplorer() {
   useEffect(() => {
     if (!repos.length) return;
     let live = true;
-    setProgress(`Inspecting 0 of ${repos.length} repositories...`);
-    void discoverDeployedWebsites(repos, (done, total) => live && setProgress(`Inspecting ${done} of ${total} repositories...`))
+    setProgress('Checking GitHub website links...');
+    void discoverDeployedWebsites(repos)
       .then(sites => { if (live) { setDiscovered(sites); setProgress(''); } });
     return () => { live = false; };
   }, [repos]);
   const websites = useMemo(() => {
-    const all = [...deployedWebsites, ...discovered];
-    return [...new Map(all.map(site => [site.url.replace(/\/$/, '').toLowerCase(), site])).values()]
+    const overridesByRepository = new Map(deployedWebsites
+      .filter(site => site.repository)
+      .map(site => [site.repository!.replace(/\/$/, '').toLowerCase(), site]));
+    const overridesByUrl = new Map(deployedWebsites
+      .map(site => [normaliseWebsiteUrl(site.url)?.toLowerCase(), site] as const)
+      .filter((entry): entry is readonly [string, DeployedWebsite] => Boolean(entry[0])));
+    return discovered.map(site => {
+      const repositoryKey = site.repository?.replace(/\/$/, '').toLowerCase();
+      const override = (repositoryKey && overridesByRepository.get(repositoryKey))
+        || overridesByUrl.get(site.url.toLowerCase());
+      if (!override) return site;
+      return {
+        ...site,
+        name: override.name,
+        description: override.description || site.description,
+        icon: override.icon,
+        featured: override.featured,
+      };
+    })
       .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || a.name.localeCompare(b.name));
   }, [discovered]);
   const launch = (site: DeployedWebsite) => { play('folder'); openBrowser({ title: site.name, url: site.url, description: site.description, repository: site.repository }); };

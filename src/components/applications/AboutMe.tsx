@@ -15,7 +15,7 @@ export function AboutMe() {
       {tab === 'Education' && <SectionList items={education.map(item => ({ title: item.qualification, subtitle: `${item.institution} · ${item.period}`, body: item.details }))} />}
       {tab === 'Experience' && <SectionList items={experience.map(item => ({ title: item.role, subtitle: `${item.organisation} · ${item.period}`, body: item.details }))} />}
       {tab === 'Skills' && <div className="skill-groups">{skillGroups.map(group => <section key={group.name}><h3>{group.name}</h3><div>{group.items.map(item => <span key={item}>{item}</span>)}</div></section>)}</div>}
-      {tab === 'Interests' && <div className="interest-list">{profile.interests.map((item, index) => <div key={item}><IconGlyph name={(['globe','paint','computer','app'] as const)[index % 4]} size={34} /><span><b>{item}</b><small>Always learning, experimenting and building.</small></span></div>)}</div>}
+      {tab === 'Interests' && <div className="interest-list">{profile.interests.map(item => <div key={item.title}><IconGlyph name={item.icon} size={34} /><span><b>{item.title}</b><small>{item.description}</small></span></div>)}</div>}
     </div>
     <div className="dialog-buttons"><button>OK</button><button>Cancel</button><button disabled>Apply</button></div>
   </div>;
