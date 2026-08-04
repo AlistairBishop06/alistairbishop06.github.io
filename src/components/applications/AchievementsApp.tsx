@@ -1,11 +1,14 @@
-import { achievements } from '../../data/achievements';
+import { useMemo, useState } from 'react';
+import { achievements, type AchievementCategory } from '../../data/achievements';
 import { useSystem } from '../../context/SystemContext';
 import { IconGlyph } from '../common/IconGlyph';
 
 export function AchievementsApp() {
+  const [category, setCategory] = useState<AchievementCategory>('Portfolio Tour');
   const { achievementProgress } = useSystem();
   const unlocked = achievements.filter(item => achievementProgress[item.id]).length;
   const percent = Math.round(unlocked / achievements.length * 100);
+  const visible = useMemo(() => achievements.filter(item => item.category === category), [category]);
 
   return <div className="achievements-app app-fill">
     <header className="achievement-summary">
@@ -15,8 +18,21 @@ export function AchievementsApp() {
         <strong>{unlocked} of {achievements.length} unlocked · {percent}% complete</strong>
       </div>
     </header>
+    <div className="achievement-filters" role="tablist" aria-label="Achievement categories">
+      {([
+        ['Portfolio Tour', 'Portfolio Guide'],
+        ['Hidden Secrets', 'Hidden Secrets'],
+      ] as const).map(([value, label]) => <button
+        key={value}
+        type="button"
+        role="tab"
+        aria-selected={category === value}
+        className={category === value ? 'active' : ''}
+        onClick={() => setCategory(value)}
+      >{label}</button>)}
+    </div>
     <div className="achievement-list">
-      {achievements.map(item => {
+      {visible.map(item => {
         const unlockedAt = achievementProgress[item.id];
         return <article key={item.id} className={unlockedAt ? 'unlocked' : 'locked'}>
           <div className="achievement-icon"><IconGlyph name={unlockedAt ? item.icon : 'favorites'} size={35} /><span>{unlockedAt ? '✓' : '?'}</span></div>
