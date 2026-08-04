@@ -22,20 +22,21 @@ export default function App() {
   const [firstInteraction, setFirstInteraction] = useState(false);
   const [achievementToast, setAchievementToast] = useState<AchievementId | null>(null);
   const loginPlayed = useRef(false);
+  const startupSoundPending = useRef(true);
   const achievementProgressRef = useRef(achievementProgress);
   const achievementTimer = useRef<number | null>(null);
   const manager = useWindowManager();
   const play = useSound(settings.soundEnabled, settings.volume);
-  const completeStartup = useCallback(() => {
-    loginPlayed.current = true;
-    void play('startup');
-    setStarted(true);
-  }, [play]);
+  const completeStartup = useCallback(() => setStarted(true), []);
   const enterStartup = useCallback(() => {
+    setStarted(true);
+  }, []);
+  useEffect(() => {
+    if (!started || !startupSoundPending.current) return;
+    startupSoundPending.current = false;
     loginPlayed.current = true;
     void play('startup');
-    setStarted(true);
-  }, [play]);
+  }, [play, started]);
   const unlockAchievement = useCallback((id: AchievementId) => {
     if (achievementProgressRef.current[id] || !achievementById.has(id)) return;
     const next = { ...achievementProgressRef.current, [id]: new Date().toISOString() };
