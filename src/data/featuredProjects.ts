@@ -1,7 +1,4 @@
-export const featuredProjects = [
-  // Add GitHub repository names here, in preferred order.
-  'Simpsons-Episode-Archive',
-  'YoutubeShort-Ranked-Video-Maker',
-  'Chaos-Chess',
-  'World-Generator-and-Explorer',
-];
+import { caseStudies } from './caseStudies';
+
+// Case-study order is also the featured-project order throughout Portfolio XP.
+export const featuredProjects = caseStudies.map(project => project.repository);

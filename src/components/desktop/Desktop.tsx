@@ -6,6 +6,8 @@ import { DesktopContextMenu } from './DesktopContextMenu';
 import { resolveWallpaper } from '../../data/wallpapers';
 
 const icons: Array<{ id: string; name: string; icon: IconName; kind: WindowKind }> = [
+  { id: 'welcome', name: 'Start Here', icon: 'windows', kind: 'welcome' },
+  { id: 'achievements', name: 'Achievements', icon: 'favorites', kind: 'achievements' },
   { id: 'projects', name: 'My Projects', icon: 'folder', kind: 'projects' },
   { id: 'websites', name: 'Deployed Websites', icon: 'websites', kind: 'websites' },
   { id: 'about', name: 'About Me', icon: 'about', kind: 'about' },
@@ -18,7 +20,7 @@ const icons: Array<{ id: string; name: string; icon: IconName; kind: WindowKind 
 ];
 
 export function Desktop() {
-  const { open, play, notify, settings } = useSystem();
+  const { open, play, notify, settings, unlockAchievement } = useSystem();
   const [selected, setSelected] = useState<string | null>(null);
   const [context, setContext] = useState<{ x: number; y: number } | null>(null);
   const [iconsVisible, setIconsVisible] = useState(true);
@@ -31,6 +33,7 @@ export function Desktop() {
     const key = (event: KeyboardEvent) => {
       sequence.current = [...sequence.current.slice(-9), event.key];
       if (sequence.current.join(',') === konami.join(',')) {
+        unlockAchievement('konami');
         document.documentElement.classList.toggle('secret-wallpaper');
         notify('Secret unlocked', 'The meadow has entered party mode. Type “matrix” in Command Prompt for another surprise.');
       }
@@ -38,12 +41,13 @@ export function Desktop() {
     };
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
-  }, [notify]);
+  }, [notify, unlockAchievement]);
 
   const openIcon = (kind: WindowKind) => {
     play(kind === 'computer' || kind === 'projects' ? 'folder' : 'window');
     if (kind === 'computer' && ++computerClicks.current >= 4) {
       computerClicks.current = 0;
+      unlockAchievement('computer_clicks');
       notify('My Computer', 'Easy there! One computer at a time should be enough.', 'error');
     }
     open(kind);

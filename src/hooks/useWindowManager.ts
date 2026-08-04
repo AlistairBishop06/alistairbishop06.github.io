@@ -25,6 +25,9 @@ const defaults: Record<WindowKind, { title: string; icon: IconName; rect: Rect }
   mines: { title: 'Minesweeper', icon: 'mines', rect: { x: 340, y: 140, width: 350, height: 410 } },
   pinball: { title: '3D Pinball for Windows - Space Cadet', icon: 'pinball', rect: { x: 205, y: 70, width: 608, height: 477 } },
   winver: { title: 'About Windows', icon: 'windows', rect: { x: 280, y: 150, width: 460, height: 310 } },
+  welcome: { title: 'Welcome to Alistair\'s Portfolio', icon: 'windows', rect: { x: 210, y: 85, width: 640, height: 500 } },
+  project: { title: 'Project Properties', icon: 'app', rect: { x: 135, y: 55, width: 790, height: 570 } },
+  achievements: { title: 'Portfolio Achievements', icon: 'favorites', rect: { x: 155, y: 60, width: 740, height: 550 } },
 };
 
 export function useWindowManager() {
@@ -33,7 +36,7 @@ export function useWindowManager() {
 
   const openWindow = useCallback((kind: WindowKind, payload?: Record<string, unknown>, title?: string) => {
     setWindows(current => {
-      const existing = current.find(win => win.kind === kind && !['notepad', 'message'].includes(kind));
+      const existing = current.find(win => win.kind === kind && !['notepad', 'message', 'project'].includes(kind));
       if (existing) return current.map(win => win.id === existing.id
         ? { ...win, minimized: false, z: ++z.current, payload: payload ? { ...payload, requestId: Date.now() } : win.payload }
         : win);

@@ -4,13 +4,13 @@ import { resolveWallpaper, wallpapers } from '../../data/wallpapers';
 import { IconGlyph } from '../common/IconGlyph';
 
 export function DisplayProperties({ close }: { close: () => void }) {
-  const { settings, setSettings } = useSystem();
+  const { settings, setSettings, unlockAchievement } = useSystem();
   const [draft, setDraft] = useState(() => ({
     ...settings,
     wallpaper: resolveWallpaper(settings.wallpaper)?.id || '',
   }));
   const selectedWallpaper = resolveWallpaper(draft.wallpaper);
-  const apply = () => setSettings(draft);
+  const apply = () => { setSettings(draft); unlockAchievement('customized'); };
 
   return <div className="display-properties properties-app app-fill">
     <div className="property-tabs"><button>Themes</button><button className="active">Desktop</button><button>Screen Saver</button><button>Appearance</button><button>Settings</button></div>

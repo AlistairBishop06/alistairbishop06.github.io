@@ -3,13 +3,13 @@ import { profile } from '../../data/profile';
 import { IconGlyph } from '../common/IconGlyph';
 import { useSystem } from '../../context/SystemContext';
 
-const left: Array<[string, IconName, WindowKind]> = [
-  ['Internet', 'browser', 'browser'], ['E-mail', 'mail', 'email'], ['My Projects', 'folder', 'projects'],
-  ['Deployed Websites', 'websites', 'websites'], ['About Me', 'about', 'about'], ['Contact Me', 'contact', 'contact'],
+const left: Array<[string, IconName, WindowKind, string?]> = [
+  ['Start Here', 'windows', 'welcome', 'Portfolio guide'], ['Internet', 'browser', 'browser', 'Internet Explorer'],
+  ['Achievements', 'favorites', 'achievements'], ['My Projects', 'folder', 'projects'], ['Deployed Websites', 'websites', 'websites'], ['About Me', 'about', 'about'], ['Contact Me', 'contact', 'contact'],
 ];
 const right: Array<[string, IconName, WindowKind]> = [
   ['My Documents', 'documents', 'documents'], ['My Recent Documents', 'recent', 'recent'], ['My Computer', 'computer', 'computer'],
-  ['Control Panel', 'control', 'control'], ['Help and Support', 'help', 'help'], ['Search', 'search', 'search'], ['Run...', 'run', 'run'],
+  ['Control Panel', 'control', 'control'], ['Search', 'search', 'search'], ['Run...', 'run', 'run'],
 ];
 
 export function StartMenu({ close }: { close: () => void }) {
@@ -22,8 +22,8 @@ export function StartMenu({ close }: { close: () => void }) {
     <header><img className="start-profile-image" src={profile.profileImage} alt="" /><strong>{settings.username || profile.name}</strong></header>
     <div className="start-columns">
       <div className="start-left">
-        {left.map(([label, icon, kind], index) => <button data-xp-sound key={label} className={index < 2 ? 'primary' : ''} onClick={() => launch(kind)}>
-          <IconGlyph name={icon} size={index < 2 ? 31 : 26} /><span>{label}{index < 2 && <small>{index === 0 ? 'Internet Explorer' : 'Outlook Express'}</small>}</span>
+        {left.map(([label, icon, kind, subtitle]) => <button data-xp-sound key={label} className={subtitle ? 'primary' : ''} onClick={() => launch(kind)}>
+          <IconGlyph name={icon} size={subtitle ? 31 : 26} /><span>{label}{subtitle && <small>{subtitle}</small>}</span>
         </button>)}
         <button data-xp-sound className="all-programs" onClick={() => launch('control')}>All Programs <b>▶</b></button>
       </div>

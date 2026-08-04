@@ -185,3 +185,129 @@ button:disabled .icon-glyph { filter: grayscale(1); opacity: .42; }
 .pinball-fallback { position: absolute; right: 7px; bottom: 7px; z-index: 1; display: flex; gap: 4px; opacity: 0; transition: opacity .15s; }
 .pinball-app:hover .pinball-fallback, .pinball-fallback:focus-within { opacity: .9; }
 .pinball-fallback button, .pinball-fallback a { min-height: 22px; padding: 2px 7px; border: 1px solid #777; color: #111; background: #ece9d8; text-decoration: none; box-shadow: inset 1px 1px #fff; }
+
+/* Featured projects and case studies */
+.project-filter { min-height: 34px; height: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.project-filter label { white-space: nowrap; }
+.project-mode { display: flex; }
+.project-mode button { min-height: 24px; padding: 2px 11px; border: 1px solid #8a98ad; background: linear-gradient(#fff,#dce5f3); }
+.project-mode button + button { margin-left: -1px; }
+.project-mode button.active { position: relative; color: #fff; border-color: #174c9d; background: linear-gradient(#4387db,#1854a2); }
+.project-properties { padding: 9px; display: flex; flex-direction: column; background: var(--surface); }
+.project-tabs { flex: 0 0 28px; }
+.project-page { padding: 15px 18px 18px; font-family: Tahoma,Verdana,sans-serif; }
+.project-header { min-height: 76px; display: flex; align-items: center; gap: 14px; margin-bottom: 15px; padding: 10px 12px; border: 1px solid #9eb5d3; border-left: 6px solid #174c9d; background: linear-gradient(100deg,#fff,#e8f2ff); }
+.project-header-icon { width: 58px; height: 58px; flex: 0 0 58px; display: grid; place-items: center; border: 2px outset #fff; }
+.project-header h1 { margin: 0 0 4px; color: #164b92; font-size: 23px; }
+.project-header p { margin: 0; color: #3f4d60; line-height: 1.35; }
+.project-summary { max-width: 760px; margin: 0 0 13px; font-size: 1.04em; line-height: 1.55; }
+.project-page h2 { margin: 16px 0 8px; color: #174c9d; font-size: 16px; border-bottom: 1px solid #b7c9df; }
+.project-facts { display: grid; grid-template-columns: 86px 1fr; max-width: 640px; margin: 0; line-height: 1.65; }
+.project-facts dt { font-weight: 700; }
+.project-facts dd { margin: 0; }
+.project-bullets { margin: 7px 0 0; padding-left: 23px; line-height: 1.55; }
+.project-bullets li { margin-bottom: 6px; }
+.project-bullets li::marker { color: #2c66b1; }
+.project-stack { display: flex; flex-wrap: wrap; gap: 6px; }
+.project-stack span { padding: 4px 8px; color: #123f7a; border: 1px solid #8eadd5; background: linear-gradient(#f8fbff,#dceafa); }
+.project-detail-cards { display: grid; grid-template-columns: repeat(auto-fit,minmax(205px,1fr)); gap: 9px; }
+.project-detail-cards section { padding: 10px; border: 1px solid #b2c5dc; background: #f7faff; box-shadow: inset 1px 1px #fff; }
+.project-detail-cards h3 { margin: 0 0 5px; color: #174c9d; font-size: 14px; }
+.project-detail-cards p { margin: 0; line-height: 1.45; }
+.project-result-banner { display: flex; align-items: center; gap: 10px; margin-top: 18px; padding: 9px; border: 1px solid #9fb7d5; background: #eef5ff; }
+.project-result-banner p { margin: 0; color: #3f4d60; }
+.project-gallery { display: grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap: 12px; }
+.project-gallery figure { margin: 0; padding: 5px; border: 1px solid #888; background: #fff; box-shadow: 2px 2px 4px #aaa; }
+.project-gallery img { display: block; width: 100%; height: auto; }
+.project-gallery figcaption { padding: 6px 3px 2px; color: #444; }
+.project-actions { flex: 0 0 40px; display: flex; align-items: center; gap: 7px; padding-top: 8px; }
+.project-actions span { flex: 1; }
+.project-actions button { min-height: 28px; display: flex; align-items: center; gap: 5px; padding: 3px 10px; border: 1px solid #777; background: linear-gradient(#fff,#e5e2d6); box-shadow: inset 1px 1px #fff; }
+.project-actions button.primary { border-color: #174c9d; font-weight: 700; background: linear-gradient(#fff,#dbeaff); }
+
+/* First-visit portfolio guide */
+.welcome-app { overflow: auto; color: #1b2b42; background: linear-gradient(135deg,#f8fbff,#d9e9fb); font-family: Tahoma,Verdana,sans-serif; }
+.welcome-app > header { min-height: 145px; display: flex; align-items: center; gap: 20px; padding: 22px 28px; color: #fff; background: linear-gradient(115deg,#0d4f9e,#2f87df 68%,#77b8ef); border-bottom: 4px solid #f6a800; }
+.welcome-app > header img { width: 92px; height: 92px; object-fit: cover; object-position: center 25%; border: 3px solid #fff; border-radius: 5px; box-shadow: 2px 3px 5px #17447f; }
+.welcome-app > header small { letter-spacing: 2px; opacity: .9; }
+.welcome-app > header h1 { margin: 2px 0 5px; font-size: 27px; text-shadow: 1px 2px #17447f; }
+.welcome-app > header p { max-width: 430px; margin: 0; line-height: 1.4; }
+.welcome-intro { padding: 14px 25px 5px; }
+.welcome-intro h2 { margin: 0 0 5px; color: #174c9d; font-size: 18px; }
+.welcome-intro p { margin: 0; line-height: 1.4; }
+.welcome-actions { display: grid; grid-template-columns: 1.35fr 1fr 1fr; gap: 10px; padding: 12px 24px 15px; }
+.welcome-actions button { min-height: 88px; display: flex; align-items: center; gap: 10px; padding: 10px; text-align: left; border: 1px solid #8ca8cd; border-radius: 5px; background: linear-gradient(#fff,#e7f0fb); box-shadow: 1px 2px 3px #aeb9c7; }
+.welcome-actions button:hover { border-color: #2f6fbd; background: #fff; }
+.welcome-actions button.featured { border: 2px solid #2a65ad; background: linear-gradient(#fff,#dbeaff); }
+.welcome-actions span { min-width: 0; }
+.welcome-actions b,.welcome-actions small { display: block; }
+.welcome-actions b { margin-bottom: 4px; color: #174c9d; }
+.welcome-actions small { color: #4b596b; line-height: 1.3; }
+.welcome-app > footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 24px; border-top: 1px solid #adc3de; background: #eef5fd; }
+.welcome-app > footer span { display: flex; align-items: center; gap: 6px; color: #4b596b; }
+.welcome-app > footer button { min-width: 76px; min-height: 25px; border: 1px solid #003c74; border-radius: 3px; background: linear-gradient(#fff,#ece9d8); }
+
+@media (max-width: 700px) {
+  .project-filter { align-items: stretch; flex-direction: column; }
+  .project-filter label { display: flex; align-items: center; gap: 5px; }
+  .project-filter input { flex: 1; min-width: 0; width: auto; }
+  .project-header { align-items: flex-start; }
+  .project-header h1 { font-size: 19px; }
+  .project-detail-cards { grid-template-columns: 1fr; }
+  .project-actions button { padding: 3px 6px; }
+  .project-actions button .icon-glyph { display: none; }
+  .welcome-app > header { padding: 17px; }
+  .welcome-app > header img { width: 72px; height: 72px; }
+  .welcome-app > header h1 { font-size: 21px; }
+  .welcome-actions { grid-template-columns: 1fr; padding: 10px 16px; }
+  .welcome-actions button { min-height: 70px; }
+  .welcome-app > footer span { display: none; }
+  .welcome-app > footer { justify-content: flex-end; }
+}
+
+/* Portfolio achievements */
+.achievements-app { display: flex; flex-direction: column; overflow: hidden; color: #1d2b3d; background: #edf3fb; font-family: Tahoma,Verdana,sans-serif; }
+.achievement-summary { flex: 0 0 auto; display: flex; align-items: center; gap: 16px; padding: 16px 20px; color: #fff; background: linear-gradient(110deg,#123f7f,#2778ca 70%,#65ace8); border-bottom: 4px solid #f6ae19; }
+.achievement-medal { width: 64px; height: 64px; flex: 0 0 64px; display: grid; place-items: center; border: 3px outset #ffe493; border-radius: 50%; background: radial-gradient(circle,#fff2a5,#e9a410 70%); box-shadow: 2px 3px 5px #143760; }
+.achievement-summary > div:last-child { flex: 1; min-width: 0; }
+.achievement-summary h1 { margin: 0 0 3px; font-size: 23px; text-shadow: 1px 2px #17447f; }
+.achievement-summary p { margin: 0 0 9px; }
+.achievement-summary strong { display: block; margin-top: 4px; font-size: 11px; }
+.achievement-progress { width: 100%; height: 14px; padding: 2px; overflow: hidden; border: 1px inset #fff; background: #fff; }
+.achievement-progress i { display: block; height: 100%; background: repeating-linear-gradient(90deg,#45a643 0 10px,#69c963 10px 18px); transition: width .25s ease; }
+.achievement-filters { flex: 0 0 34px; display: flex; gap: 4px; align-items: center; padding: 5px 10px; border-bottom: 1px solid #9eb2cc; background: #dce7f5; }
+.achievement-filters button { min-height: 24px; padding: 2px 12px; border: 1px solid #8198b5; background: linear-gradient(#fff,#dbe5f2); }
+.achievement-filters button.active { color: #fff; border-color: #194f94; background: linear-gradient(#468bdc,#1b5da9); }
+.achievement-list { flex: 1; min-height: 0; overflow: auto; display: grid; grid-template-columns: repeat(auto-fit,minmax(285px,1fr)); align-content: start; gap: 8px; padding: 10px; }
+.achievement-list article { min-height: 103px; display: grid; grid-template-columns: 55px minmax(0,1fr); gap: 10px; padding: 9px; border: 1px solid #9fb2ca; background: #fff; box-shadow: 1px 2px 3px #c1cad5; }
+.achievement-list article.unlocked { border-color: #6f9f62; background: linear-gradient(110deg,#fff,#effbed); }
+.achievement-list article.locked { color: #536071; background: linear-gradient(#f7f7f7,#e7e7e7); }
+.achievement-icon { position: relative; width: 50px; height: 50px; display: grid; place-items: center; border: 2px outset #fff; background: linear-gradient(135deg,#d9e9fb,#8eb6e4); }
+.locked .achievement-icon { filter: grayscale(1); opacity: .72; }
+.achievement-icon span { position: absolute; right: -4px; bottom: -4px; width: 20px; height: 20px; display: grid; place-items: center; color: #fff; border: 1px solid #fff; border-radius: 50%; background: #30862e; font-weight: 700; }
+.locked .achievement-icon span { background: #6c7480; }
+.achievement-copy { min-width: 0; }
+.achievement-copy > div { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.achievement-copy h2 { margin: 0; color: #174c9d; font-size: 14px; }
+.locked .achievement-copy h2 { color: #4e5967; }
+.achievement-copy small { color: #6b7785; white-space: nowrap; font-size: 10px; }
+.achievement-copy p { margin: 5px 0; line-height: 1.35; }
+.achievement-copy time { color: #47733d; font-size: 10px; }
+.achievement-list article > button { grid-column: 2; justify-self: end; min-width: 90px; min-height: 24px; border: 1px solid #526f95; background: linear-gradient(#fff,#dceafa); }
+.achievements-app > footer { flex: 0 0 28px; display: flex; align-items: center; gap: 6px; padding: 4px 10px; color: #4b596b; border-top: 1px solid #9eb2cc; background: #e5edf7; }
+.achievement-toast { position: fixed; right: 12px; bottom: 42px; z-index: 10000; width: min(330px,calc(100vw - 24px)); min-height: 70px; display: flex; align-items: center; gap: 11px; padding: 10px 13px; color: #fff; text-align: left; border: 2px solid #f7c844; border-radius: 6px; background: linear-gradient(105deg,#184c90,#287acb); box-shadow: 3px 4px 10px rgba(0,0,0,.55),inset 1px 1px rgba(255,255,255,.45); animation: achievement-in .25s ease-out; }
+.achievement-toast small,.achievement-toast b { display: block; }
+.achievement-toast small { margin-bottom: 3px; color: #ffe58f; text-transform: uppercase; letter-spacing: 1px; }
+.achievement-toast b { font-size: 14px; }
+@keyframes achievement-in { from { opacity: 0; transform: translateY(22px); } }
+.welcome-app > footer > div { display: flex; gap: 7px; }
+
+@media (max-width: 700px) {
+  .achievement-summary { padding: 12px; }
+  .achievement-medal { width: 50px; height: 50px; flex-basis: 50px; }
+  .achievement-summary h1 { font-size: 19px; }
+  .achievement-list { grid-template-columns: 1fr; }
+  .achievement-filters { overflow-x: auto; }
+  .achievement-filters button { white-space: nowrap; }
+  .achievements-app > footer { display: none; }
+}

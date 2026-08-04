@@ -3,6 +3,7 @@ import { profile } from '../../data/profile';
 import { skillGroups } from '../../data/skills';
 import { education } from '../../data/education';
 import { experience } from '../../data/experience';
+import { caseStudyByRepository } from '../../data/caseStudies';
 import { useGitHubRepositories } from '../../hooks/useGitHubRepositories';
 import { useSystem } from '../../context/SystemContext';
 
@@ -16,7 +17,7 @@ export function CommandPrompt({ close }: { close: () => void }) {
   const [matrix, setMatrix] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   const { repos } = useGitHubRepositories();
-  const { open, triggerBlueScreen } = useSystem();
+  const { open, triggerBlueScreen, unlockAchievement } = useSystem();
   useEffect(() => end.current?.scrollIntoView(), [lines]);
   const output = (value: string | string[]) => setLines(current => [...current, ...(Array.isArray(value) ? value : value.split('\n'))]);
   const run = (event: FormEvent) => {
@@ -45,11 +46,13 @@ export function CommandPrompt({ close }: { close: () => void }) {
       case 'whoami': output('portfolio-xp\\alistair'); break; case 'hostname': output('ALISTAIR-XP'); break;
       case 'date': output(new Date().toLocaleDateString(undefined, { dateStyle: 'full' })); break; case 'time': output(new Date().toLocaleTimeString()); break;
       case 'ver': output('Alistair Portfolio XP [Version 1.0.2600]'); break; case 'exit': close(); break;
-      case 'matrix': setMatrix(true); output('Wake up, Alistair...'); setTimeout(() => setMatrix(false), 6000); break;
-      case 'bsod': triggerBlueScreen(); break; case 'doom': output('Bad command or file name. (Doom is currently in a meeting.)'); break;
+      case 'matrix': unlockAchievement('matrix'); setMatrix(true); output('Wake up, Alistair...'); setTimeout(() => setMatrix(false), 6000); break;
+      case 'bsod': triggerBlueScreen(); break; case 'doom': unlockAchievement('doom'); output('Bad command or file name. (Doom is currently in a meeting.)'); break;
       default: {
         const repo = repos.find(item => item.name.toLowerCase() === raw.toLowerCase());
-        if (repo) { open('notepad', { repo }, `${repo.name} - Notepad`); output(`Opening ${repo.name} README...`); }
+        const study = repo ? caseStudyByRepository.get(repo.name.toLowerCase()) : undefined;
+        if (repo && study) { open('project', { projectId: study.id, repo }, `${study.title} - Project Properties`); output(`Opening ${study.title} case study...`); }
+        else if (repo) { unlockAchievement('readme_opened'); open('notepad', { repo }, `${repo.name} - Notepad`); output(`Opening ${repo.name} README...`); }
         else output(`'${command}' is not recognized as an internal or external command,\noperable program or batch file.`);
       }
     }

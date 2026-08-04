@@ -7,7 +7,7 @@ import { IconGlyph } from '../common/IconGlyph';
 export function ContactApp() {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [sending, setSending] = useState(false);
-  const { notify, play } = useSystem();
+  const { notify, play, unlockAchievement } = useSystem();
   const endpoint = import.meta.env.VITE_CONTACT_ENDPOINT as string | undefined;
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -19,14 +19,14 @@ export function ContactApp() {
     try {
       const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(form) });
       if (!response.ok) throw new Error();
-      setForm({ name: '', email: '', subject: '', message: '' }); play('outgoing'); notify('Message sent', 'Thanks! Your message was sent successfully.', 'info', false);
+      setForm({ name: '', email: '', subject: '', message: '' }); unlockAchievement('contact_action'); play('outgoing'); notify('Message sent', 'Thanks! Your message was sent successfully.', 'info', false);
     } catch { notify('Send failed', 'The message could not be sent. Please use one of the direct contact links.', 'error'); }
     finally { setSending(false); }
   };
   return <div className="contact-app app-fill">
     <aside><div className="contact-envelope"><IconGlyph name="contact" size={68} /></div><h2>Contact Alistair</h2><p>Questions, opportunities and interesting ideas are always welcome.</p>
-      <button onClick={() => void navigator.clipboard.writeText(profile.email)}><IconGlyph name="copy" size={20} /> Copy email address</button>
-      {socialLinks.map(link => <a href={link.url} target="_blank" rel="noreferrer" key={link.label}>{link.label} <span>↗</span></a>)}
+      <button onClick={() => { unlockAchievement('contact_action'); void navigator.clipboard.writeText(profile.email); }}><IconGlyph name="copy" size={20} /> Copy email address</button>
+      {socialLinks.map(link => <a href={link.url} target="_blank" rel="noreferrer" key={link.label} onClick={() => unlockAchievement('contact_action')}>{link.label} <span>↗</span></a>)}
     </aside>
     <form onSubmit={submit}><fieldset><legend>Send a message</legend>
       <label>Name:<input value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} /></label>

@@ -29,7 +29,9 @@ All core personal data lives in `src/data/`:
 - `education.ts` and `experience.ts` — CV/About entries
 - `skills.ts` — installed technologies and skills
 - `socialLinks.ts` — GitHub, LinkedIn and portfolio links
-- `featuredProjects.ts` — GitHub repository names to pin, in preferred order
+- `featuredProjects.ts` — featured order derived from the case-study collection
+- `caseStudies.ts` — featured-project titles, summaries, decisions, challenges, results, links and screenshots
+- `achievements.ts` — guided-tour and secret achievement definitions, hints, icons and launch actions
 - `deployedWebsites.ts` — manually curated deployments
 
 Each manual website entry supports:
@@ -78,6 +80,28 @@ Successful repository responses are cached in `localStorage` for 30 minutes. REA
 To raise API limits in production, proxy GitHub requests through a serverless function and keep `GITHUB_TOKEN` only in that server-side environment. Never place it in a `VITE_` variable because Vite exposes those variables to the browser.
 
 README lookup supports `README.md`, `README.MD`, `readme.md`, `README`, and `readme.txt`. Notepad defaults to plain text and offers safe GFM rendering with raw HTML disabled.
+
+Featured repositories open as modular Project Properties case studies. Their order and presentation come from `src/data/caseStudies.ts`; every other repository still opens its README in Notepad. Visitors see Featured projects by default and can switch to All Projects from the Explorer toolbar.
+
+To add real project images, place them in `public/assets/projects/` and add entries to the relevant case study:
+
+```ts
+screenshots: [
+  {
+    src: './assets/projects/my-project.png',
+    alt: 'Accessible description of the project screen',
+    caption: 'What this screen demonstrates.',
+  },
+]
+```
+
+The Screenshots tab appears automatically when at least one image is configured.
+
+## Achievements and guided tour
+
+The Achievements desktop application tracks portfolio exploration and easter eggs in the visitor's browser. Definitions live in `src/data/achievements.ts`; unlock timestamps are saved under the `xp-achievements` local-storage key. Core window launches are mapped centrally through `windowAchievements`, while interaction-specific achievements call `unlockAchievement(...)` where the action succeeds.
+
+Add an achievement to the data collection first, then use its inferred `AchievementId` wherever it should unlock. Newly unlocked achievements display an XP-style notification and appear immediately in the guide.
 
 ## Deployment discovery and iframe restrictions
 

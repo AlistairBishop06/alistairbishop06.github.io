@@ -13,7 +13,7 @@ export function WebsitesExplorer() {
   const [view, setView] = useState<ExplorerView>('large');
   const [selected, setSelected] = useState<string | null>(null);
   const [progress, setProgress] = useState('');
-  const { openBrowser, play } = useSystem();
+  const { openBrowser, play, unlockAchievement } = useSystem();
   useEffect(() => {
     if (!repos.length) return;
     let live = true;
@@ -44,7 +44,7 @@ export function WebsitesExplorer() {
     })
       .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || a.name.localeCompare(b.name));
   }, [discovered]);
-  const launch = (site: DeployedWebsite) => { play('folder'); openBrowser({ title: site.name, url: site.url, description: site.description, repository: site.repository }); };
+  const launch = (site: DeployedWebsite) => { play('folder'); unlockAchievement('live_demo'); openBrowser({ title: site.name, url: site.url, description: site.description, repository: site.repository }); };
   return <ExplorerShell title="Deployed Websites" address="C:\\Documents and Settings\\Alistair\\Favorites\\Web Apps" count={websites.length} view={view} setView={setView} status={progress || 'Internet shortcuts'}>
     {websites.map(site => <button key={site.url} className={`file-item website-item ${selected === site.url ? 'selected' : ''}`} onClick={() => setSelected(site.url)} onDoubleClick={() => launch(site)} onKeyDown={event => event.key === 'Enter' && launch(site)}>
       <span className="shortcut-icon"><IconGlyph name="websites" size={view === 'large' ? 43 : 25} /><small>↗</small></span>

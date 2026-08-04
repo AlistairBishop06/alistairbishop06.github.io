@@ -7,8 +7,8 @@ const initial = ['unfinished-project-final-final-v2.zip', 'definitely-not-a-bug.
 export function RecycleBin() {
   const [items, setItems] = useState(initial);
   const [selected, setSelected] = useState<string[]>([]);
-  const { notify, play } = useSystem();
-  const empty = () => { if (!items.length) return; setItems([]); setSelected([]); play('empty'); notify('Recycle Bin', 'The Recycle Bin is now empty. Your sleep schedule was not recoverable.', 'info', false); };
+  const { notify, play, unlockAchievement } = useSystem();
+  const empty = () => { if (!items.length) return; setItems([]); setSelected([]); unlockAchievement('recycle_empty'); play('empty'); notify('Recycle Bin', 'The Recycle Bin is now empty. Your sleep schedule was not recoverable.', 'info', false); };
   const restore = () => { setItems(current => current.filter(item => !selected.includes(item))); setSelected([]); play('maximize'); notify('Restore complete', 'Selected files were restored to a highly organised imaginary folder.', 'info', false); };
   const removeSelected = () => { setItems(current => current.filter(item => !selected.includes(item))); setSelected([]); play('empty'); notify('Delete Files', 'The selected items were permanently deleted. Probably.', 'info', false); };
   return <div className="recycle-app app-fill"><MenuBar menus={[{ label: 'File', items: [{ label: 'Restore', disabled: !selected.length, action: restore }, { label: 'Delete permanently', disabled: !selected.length, action: removeSelected }, { label: 'Empty Recycle Bin', disabled: !items.length, action: empty }] }, { label: 'Edit' }, { label: 'View' }, { label: 'Help' }]} />

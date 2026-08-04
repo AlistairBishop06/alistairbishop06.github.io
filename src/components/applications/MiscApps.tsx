@@ -22,8 +22,8 @@ export function HelpApp() {
 }
 export function SearchApp() {
   const [query, setQuery] = useState(''); const { open } = useSystem();
-  const results = useMemo(() => ['Projects', 'Deployed Websites', 'About Me', 'My CV', 'Contact Me'].filter(item => item.toLowerCase().includes(query.toLowerCase())), [query]);
-  const kind = (name: string) => ({ Projects: 'projects', 'Deployed Websites': 'websites', 'About Me': 'about', 'My CV': 'cv', 'Contact Me': 'contact' } as const)[name as 'Projects'];
+  const results = useMemo(() => ['Achievements', 'Projects', 'Deployed Websites', 'About Me', 'My CV', 'Contact Me'].filter(item => item.toLowerCase().includes(query.toLowerCase())), [query]);
+  const kind = (name: string) => ({ Achievements: 'achievements', Projects: 'projects', 'Deployed Websites': 'websites', 'About Me': 'about', 'My CV': 'cv', 'Contact Me': 'contact' } as const)[name as 'Projects'];
   return <div className="search-app app-fill"><aside><div className="search-dog"><IconGlyph name="search" size={65} /></div><h3>What do you want to search for?</h3><label>All or part of the file name:<input value={query} onChange={event => setQuery(event.target.value)} autoFocus /></label><button>Search</button></aside><div>{results.map(result => <button key={result} onDoubleClick={() => open(kind(result))}><IconGlyph name="document" size={30} /><span>{result}</span></button>)}</div></div>;
 }
 export function EmailApp() {

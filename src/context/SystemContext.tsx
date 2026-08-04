@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { BrowserTarget, WindowKind } from '../types';
 import type { SoundName } from '../hooks/useSound';
+import type { AchievementId, AchievementProgress } from '../data/achievements';
 
 export interface SystemSettings {
   wallpaper: string;
@@ -23,6 +24,8 @@ interface SystemContextValue {
   restart: () => void;
   shutDown: () => void;
   triggerBlueScreen: () => void;
+  achievementProgress: AchievementProgress;
+  unlockAchievement: (id: AchievementId) => void;
 }
 
 export const SystemContext = createContext<SystemContextValue | null>(null);
