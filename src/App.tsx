@@ -15,18 +15,27 @@ import { IconGlyph } from './components/common/IconGlyph';
 const defaultSettings: SystemSettings = { wallpaper: defaultWallpaperId, theme: 'luna', soundEnabled: true, volume: .7, highContrast: false, textScale: 1, pointer: 'classic', username: 'Alistair Bishop' };
 export default function App() {
   const [settings, setSettings] = useLocalStorage('xp-settings', defaultSettings);
-  const [skipStartup, setSkipStartup] = useLocalStorage('xp-skip-startup', false);
   const [achievementProgress, setAchievementProgress] = useLocalStorage<AchievementProgress>('xp-achievements', {});
-  const [started, setStarted] = useState(skipStartup);
+  const [started, setStarted] = useState(false);
   const [poweredOff, setPoweredOff] = useState(false);
   const [blueScreen, setBlueScreen] = useState(false);
   const [firstInteraction, setFirstInteraction] = useState(false);
   const [achievementToast, setAchievementToast] = useState<AchievementId | null>(null);
   const loginPlayed = useRef(false);
+  const bootSoundPlayed = useRef(false);
+  const bootSoundAttempted = useRef(false);
   const achievementProgressRef = useRef(achievementProgress);
   const achievementTimer = useRef<number | null>(null);
   const manager = useWindowManager();
   const play = useSound(settings.soundEnabled, settings.volume);
+  useEffect(() => {
+    if (bootSoundAttempted.current) return;
+    bootSoundAttempted.current = true;
+    void play('startup').then(played => {
+      bootSoundPlayed.current = played;
+      if (played) loginPlayed.current = true;
+    });
+  }, [play]);
   const unlockAchievement = useCallback((id: AchievementId) => {
     if (achievementProgressRef.current[id] || !achievementById.has(id)) return;
     const next = { ...achievementProgressRef.current, [id]: new Date().toISOString() };
@@ -49,10 +58,18 @@ export default function App() {
   }, [started]);
   useEffect(() => () => { if (achievementTimer.current) window.clearTimeout(achievementTimer.current); }, []);
   useEffect(() => {
-    const interact = () => { setFirstInteraction(true); window.removeEventListener('pointerdown', interact); window.removeEventListener('keydown', interact); };
+    const interact = () => {
+      if (!bootSoundPlayed.current && settings.soundEnabled && settings.volume > 0) {
+        loginPlayed.current = true;
+        void play('startup').then(played => { bootSoundPlayed.current = played; });
+      }
+      setFirstInteraction(true);
+      window.removeEventListener('pointerdown', interact);
+      window.removeEventListener('keydown', interact);
+    };
     if (!firstInteraction) { window.addEventListener('pointerdown', interact); window.addEventListener('keydown', interact); }
     return () => { window.removeEventListener('pointerdown', interact); window.removeEventListener('keydown', interact); };
-  }, [firstInteraction, play]);
+  }, [firstInteraction, play, settings.soundEnabled, settings.volume]);
   useEffect(() => {
     if (!firstInteraction || !started || loginPlayed.current) return;
     loginPlayed.current = true;
@@ -89,7 +106,7 @@ export default function App() {
   const context = useMemo(() => ({ settings, setSettings, play, open, openBrowser, notify, restart, shutDown, triggerBlueScreen, achievementProgress, unlockAchievement }), [settings, setSettings, play, open, openBrowser, notify, restart, shutDown, triggerBlueScreen, achievementProgress, unlockAchievement]);
 
   if (poweredOff) return <main className="powered-off"><p>It is now safe to turn off your computer.</p><button onClick={() => { loginPlayed.current = true; setPoweredOff(false); setStarted(false); play('startup'); window.setTimeout(() => setStarted(true), 3500); }}>Turn Portfolio XP back on</button></main>;
-  if (!started) return <StartupSequence onComplete={() => setStarted(true)} onSkip={() => { setSkipStartup(true); setStarted(true); }} />;
+  if (!started) return <StartupSequence onComplete={() => setStarted(true)} onSkip={() => setStarted(true)} />;
   return <SystemContext.Provider value={context}>
     <div className={`xp-system theme-${settings.theme} pointer-${settings.pointer} ${settings.highContrast ? 'high-contrast' : ''}`} style={{ fontSize: `${settings.textScale * 13}px` }}>
       <Desktop />

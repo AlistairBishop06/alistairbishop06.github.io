@@ -17,7 +17,7 @@ export interface SystemSettings {
 interface SystemContextValue {
   settings: SystemSettings;
   setSettings: (next: SystemSettings | ((current: SystemSettings) => SystemSettings)) => void;
-  play: (name: SoundName) => void;
+  play: (name: SoundName) => Promise<boolean>;
   open: (kind: WindowKind, payload?: Record<string, unknown>, title?: string) => void;
   openBrowser: (target?: BrowserTarget) => void;
   notify: (title: string, message: string, type?: 'info' | 'error', withSound?: boolean) => void;

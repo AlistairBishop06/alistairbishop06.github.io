@@ -72,7 +72,7 @@ export function useSound(enabled: boolean, volume: number) {
   }, [enabled, volume]);
 
   return useCallback((name: SoundName) => {
-    if (!enabled || volume <= 0) return;
+    if (!enabled || volume <= 0) return Promise.resolve(false);
     const definition = soundManifest[name];
     let source = cache.current.get(name);
     if (!source) {
@@ -97,6 +97,9 @@ export function useSound(enabled: boolean, volume: number) {
     audio.addEventListener('error', cleanup, { once: true });
     playing.current.add(audio);
     if (definition.lifecycle) lifecycle.current = audio;
-    void audio.play().catch(cleanup); // Browser policy still requires a prior visitor gesture.
+    return audio.play().then(() => true).catch(() => {
+      cleanup();
+      return false;
+    }); // Browser policy may require a prior visitor gesture.
   }, [enabled, volume]);
 }
