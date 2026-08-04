@@ -28,14 +28,9 @@ export default function App() {
   const play = useSound(settings.soundEnabled, settings.volume);
   const completeStartup = useCallback(() => {
     loginPlayed.current = true;
-    if (!settings.soundEnabled || settings.volume <= 0) {
-      setStarted(true);
-      return;
-    }
-    void play('startup').then(played => {
-      if (played) setStarted(true);
-    });
-  }, [play, settings.soundEnabled, settings.volume]);
+    void play('startup');
+    setStarted(true);
+  }, [play]);
   const enterStartup = useCallback(() => {
     loginPlayed.current = true;
     void play('startup');
