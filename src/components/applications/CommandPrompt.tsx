@@ -10,6 +10,70 @@ import { useSystem } from '../../context/SystemContext';
 const dirs: Record<string, string[]> = {
   'C:\\': ['Projects', 'Websites', 'Skills', 'Experience'], 'C:\\Projects': [], 'C:\\Websites': [], 'C:\\Skills': [], 'C:\\Experience': [],
 };
+
+const matrixCharacters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓ';
+
+function MatrixRain() {
+  const canvas = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const element = canvas.current;
+    if (!element) return;
+    const context = element.getContext('2d');
+    if (!context) return;
+
+    const fontSize = 15;
+    let drops: number[] = [];
+    let animation = 0;
+    let lastFrame = 0;
+
+    const resize = () => {
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      const bounds = element.getBoundingClientRect();
+      element.width = Math.max(1, Math.floor(bounds.width * ratio));
+      element.height = Math.max(1, Math.floor(bounds.height * ratio));
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      drops = Array.from({ length: Math.ceil(bounds.width / fontSize) }, () => -Math.random() * 35);
+      context.fillStyle = '#020403';
+      context.fillRect(0, 0, bounds.width, bounds.height);
+    };
+
+    const draw = (time: number) => {
+      if (time - lastFrame >= 48) {
+        lastFrame = time;
+        const { width, height } = element.getBoundingClientRect();
+        context.fillStyle = 'rgba(0,8,2,.16)';
+        context.fillRect(0, 0, width, height);
+        context.font = `${fontSize}px "Lucida Console",Consolas,monospace`;
+
+        drops.forEach((drop, column) => {
+          const character = matrixCharacters[Math.floor(Math.random() * matrixCharacters.length)];
+          const x = column * fontSize;
+          const y = drop * fontSize;
+          context.shadowBlur = 8;
+          context.shadowColor = '#00ff66';
+          context.fillStyle = Math.random() > .88 ? '#d9ffe5' : Math.random() > .45 ? '#45ff73' : '#0a9f3e';
+          context.fillText(character, x, y);
+          drops[column] = y > height && Math.random() > .965 ? -Math.random() * 18 : drop + .72 + Math.random() * .48;
+        });
+        context.shadowBlur = 0;
+      }
+      animation = requestAnimationFrame(draw);
+    };
+
+    const observer = new ResizeObserver(resize);
+    observer.observe(element);
+    resize();
+    animation = requestAnimationFrame(draw);
+    return () => {
+      cancelAnimationFrame(animation);
+      observer.disconnect();
+    };
+  }, []);
+
+  return <canvas ref={canvas} className="matrix-rain" aria-hidden="true" />;
+}
+
 export function CommandPrompt({ close }: { close: () => void }) {
   const [lines, setLines] = useState<string[]>(['Microsoft Windows XP [Version 5.1.2600]', '(C) Copyright 1985-2001 Microsoft Corp.', '', 'Portfolio shell ready. Type HELP for available commands.']);
   const [input, setInput] = useState('');
@@ -59,7 +123,7 @@ export function CommandPrompt({ close }: { close: () => void }) {
     }
   };
   return <div className={`cmd-app app-fill ${matrix ? 'matrix' : ''}`} onClick={event => (event.currentTarget.querySelector('input') as HTMLInputElement)?.focus()}>
-    {matrix && <div className="matrix-rain" aria-hidden="true">1011001010110010101100101011001010110010101100101011001010110010<br />0100110101001101010011010100110101001101010011010100110101001101<br />1100101011001010110010101100101011001010110010101100101011001010</div>}
+    {matrix && <MatrixRain />}
     <div className="cmd-lines">{lines.map((line, index) => <div key={index}>{line || '\u00a0'}</div>)}</div>
     <form onSubmit={run}><label>{cwd}&gt;</label><input autoFocus value={input} onChange={event => setInput(event.target.value)} aria-label="Command" autoComplete="off" /></form><div ref={end} />
   </div>;

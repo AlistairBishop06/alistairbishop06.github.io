@@ -20,6 +20,23 @@ export function WindowFrame({ win, active, children, onClose, onFocus, onMinimiz
     window.addEventListener('xp-close-active', closeActive);
     return () => window.removeEventListener('xp-close-active', closeActive);
   }, [active, onClose]);
+  useEffect(() => {
+    if (win.kind !== 'mines') return;
+    const resizeMinesweeper = (event: Event) => {
+      const { innerWidth: contentWidth, innerHeight: contentHeight } = (event as CustomEvent<{ innerWidth: number; innerHeight: number }>).detail;
+      const width = contentWidth + 8;
+      const height = contentHeight + 35;
+      onRect({
+        ...win.rect,
+        x: Math.max(0, Math.min(win.rect.x, innerWidth - width)),
+        y: Math.max(0, Math.min(win.rect.y, innerHeight - 32 - height)),
+        width,
+        height,
+      });
+    };
+    window.addEventListener('xp-minesweeper-resize', resizeMinesweeper);
+    return () => window.removeEventListener('xp-minesweeper-resize', resizeMinesweeper);
+  }, [onRect, win.kind, win.rect]);
 
   const beginMove = (event: PointerEvent<HTMLDivElement>) => {
     if (win.maximized || (event.target as HTMLElement).closest('button')) return;
@@ -64,13 +81,13 @@ export function WindowFrame({ win, active, children, onClose, onFocus, onMinimiz
     : { left: win.rect.x, top: win.rect.y, width: win.rect.width, height: win.rect.height, zIndex: win.z };
 
   return <section
-    className={`xp-window ${active ? 'active' : 'inactive'} ${win.maximized ? 'maximized' : ''}`}
+    className={`xp-window window-${win.kind} ${active ? 'active' : 'inactive'} ${win.maximized ? 'maximized' : ''}`}
     style={style}
     hidden={win.minimized}
     onPointerDown={onFocus}
     aria-label={win.title}
   >
-    <header className="title-bar" onPointerDown={beginMove} onPointerMove={move} onPointerUp={end} onDoubleClick={onMaximize}>
+    <header className="title-bar" onPointerDown={beginMove} onPointerMove={move} onPointerUp={end} onDoubleClick={() => win.kind !== 'mines' && onMaximize()}>
       <span className="title-text"><IconGlyph name={win.icon || 'app'} size={17} /> {win.title}</span>
       <span className="window-controls">
         <button data-xp-sound aria-label={`Minimize ${win.title}`} onClick={onMinimize}><span>_</span></button>

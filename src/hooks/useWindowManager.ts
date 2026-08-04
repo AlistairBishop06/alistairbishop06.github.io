@@ -22,7 +22,7 @@ const defaults: Record<WindowKind, { title: string; icon: IconName; rect: Rect }
   documents: { title: 'My Documents', icon: 'documents', rect: { x: 190, y: 90, width: 650, height: 450 } },
   recent: { title: 'My Recent Documents', icon: 'recent', rect: { x: 210, y: 100, width: 610, height: 420 } },
   email: { title: 'New Message', icon: 'mail', rect: { x: 210, y: 80, width: 610, height: 500 } },
-  mines: { title: 'Minesweeper', icon: 'mines', rect: { x: 185, y: 65, width: 670, height: 540 } },
+  mines: { title: 'Minesweeper', icon: 'mines', rect: { x: 340, y: 140, width: 288, height: 371 } },
   pinball: { title: '3D Pinball for Windows - Space Cadet', icon: 'pinball', rect: { x: 205, y: 70, width: 608, height: 477 } },
   daggerfall: { title: 'The Elder Scrolls II: Daggerfall', icon: 'app', rect: { x: 70, y: 35, width: 900, height: 560 } },
   winver: { title: 'About Windows', icon: 'windows', rect: { x: 280, y: 150, width: 460, height: 310 } },
