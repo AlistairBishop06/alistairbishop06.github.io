@@ -186,6 +186,25 @@ button:disabled .icon-glyph { filter: grayscale(1); opacity: .42; }
 .pinball-app:hover .pinball-fallback, .pinball-fallback:focus-within { opacity: .9; }
 .pinball-fallback button, .pinball-fallback a { min-height: 22px; padding: 2px 7px; border: 1px solid #777; color: #111; background: #ece9d8; text-decoration: none; box-shadow: inset 1px 1px #fff; }
 
+/* Integrated Minesweeper */
+.minesweeper-app { position: relative; display: grid; place-items: stretch; overflow: hidden; background: #c0c0c0; }
+.minesweeper-app iframe { display: block; width: 100%; height: 100%; border: 0; background: #c0c0c0; }
+.minesweeper-loading { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; gap: 12px; color: #111; background: #c0c0c0; }
+.minesweeper-loading strong, .minesweeper-loading span { display: block; }
+.minesweeper-loading span { margin-top: 3px; color: #555; }
+.minesweeper-fallback { position: absolute; right: 7px; bottom: 7px; z-index: 1; display: flex; gap: 4px; opacity: 0; transition: opacity .15s; }
+.minesweeper-app:hover .minesweeper-fallback, .minesweeper-fallback:focus-within { opacity: .9; }
+.minesweeper-fallback button, .minesweeper-fallback a { min-height: 22px; padding: 2px 7px; border: 1px solid #777; color: #111; background: #ece9d8; text-decoration: none; box-shadow: inset 1px 1px #fff; }
+
+/* Secret Daggerfall emulator */
+.daggerfall-app { position: relative; overflow: hidden; background: #000; }
+.daggerfall-viewport { --daggerfall-scale-x: 1; --daggerfall-scale-y: 1; position: absolute; inset: 0; overflow: hidden; background: #000; }
+.daggerfall-viewport iframe { position: absolute; top: 0; left: 0; display: block; width: 900px; height: 608px; border: 0; background: #000; transform: scaleX(var(--daggerfall-scale-x)) scaleY(var(--daggerfall-scale-y)) translateY(-70px); transform-origin: top left; }
+.daggerfall-loading { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; gap: 14px; color: #ead8ad; background: radial-gradient(circle,#302617,#080706 70%); }
+.daggerfall-loading strong, .daggerfall-loading span { display: block; }
+.daggerfall-loading strong { font: 700 17px Georgia,serif; }
+.daggerfall-loading span { margin-top: 4px; color: #a99c82; }
+
 /* Featured projects and case studies */
 .project-filter { min-height: 34px; height: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .project-filter label { white-space: nowrap; }

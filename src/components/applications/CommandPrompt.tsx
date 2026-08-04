@@ -48,6 +48,7 @@ export function CommandPrompt({ close }: { close: () => void }) {
       case 'ver': output('Alistair Portfolio XP [Version 1.0.2600]'); break; case 'exit': close(); break;
       case 'matrix': unlockAchievement('matrix'); setMatrix(true); output('Wake up, Alistair...'); setTimeout(() => setMatrix(false), 6000); break;
       case 'bsod': triggerBlueScreen(); break; case 'doom': unlockAchievement('doom'); output('Bad command or file name. (Doom is currently in a meeting.)'); break;
+      case 'daggerfall': open('daggerfall'); output('Opening The Elder Scrolls II: Daggerfall...'); break;
       default: {
         const repo = repos.find(item => item.name.toLowerCase() === raw.toLowerCase());
         const study = repo ? caseStudyByRepository.get(repo.name.toLowerCase()) : undefined;

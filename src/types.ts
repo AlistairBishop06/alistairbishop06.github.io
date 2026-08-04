@@ -2,7 +2,7 @@ export type WindowKind =
   | 'projects' | 'websites' | 'about' | 'cv' | 'computer' | 'browser'
   | 'contact' | 'recycle' | 'control' | 'display' | 'notepad' | 'cmd'
   | 'run' | 'shutdown' | 'message' | 'help' | 'search' | 'documents'
-  | 'recent' | 'email' | 'mines' | 'pinball' | 'winver' | 'welcome' | 'project' | 'achievements';
+  | 'recent' | 'email' | 'mines' | 'pinball' | 'daggerfall' | 'winver' | 'welcome' | 'project' | 'achievements';
 
 export interface Rect { x: number; y: number; width: number; height: number }
 

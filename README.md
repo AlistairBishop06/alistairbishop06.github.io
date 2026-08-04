@@ -1,6 +1,6 @@
 # Alistair Portfolio XP
 
-An interactive portfolio that behaves like a compact Windows XP-inspired operating system in the browser. It includes a startup sequence, desktop, window manager, Start menu, taskbar, live GitHub Explorer, README Notepad, internal tabbed browser, portfolio applications, an embedded Space Cadet Pinball app, accessibility settings, sound, and a handful of harmless easter eggs.
+An interactive portfolio that behaves like a compact Windows XP-inspired operating system in the browser. It includes a startup sequence, desktop, window manager, Start menu, taskbar, live GitHub Explorer, README Notepad, internal tabbed browser, portfolio applications, embedded Space Cadet Pinball and Minesweeper games, accessibility settings, sound, and a handful of harmless easter eggs.
 
 The hill wallpaper was generated specifically for this project, while the supplied XP icon and sound collections are stored locally. No image or audio is hotlinked at runtime.
 
@@ -103,6 +103,10 @@ The Achievements desktop application tracks portfolio exploration and easter egg
 
 Add an achievement to the data collection first, then use its inferred `AchievementId` wherever it should unlock. Newly unlocked achievements display an XP-style notification and appear immediately in the guide.
 
+## Hosted Daggerfall secret
+
+Typing `daggerfall` in Command Prompt opens a hosted browser version of the game. The portfolio does not redistribute the game archive or include a local DOS emulator. DOS Zone currently restricts both its game bundle and catalogue page to its own approved origins, so it cannot be framed by GitHub Pages; the embedded player uses PlayClassic's frame-compatible game canvas and clips away the surrounding catalogue page.
+
 ## Deployment discovery and iframe restrictions
 
 The Deployed Websites folder shows one entry for each non-fork repository with a valid external URL in GitHub's Website (`homepage`) field. It does not invent GitHub Pages addresses or scrape links from READMEs. Duplicate website URLs are removed. Entries in `src/data/deployedWebsites.ts` can rename, describe, iconise or feature a matching repository, but cannot create an extra website by themselves.
@@ -137,7 +141,7 @@ For the contact form on GitHub Pages, create a repository variable named `VITE_C
 - Right-click the desktop for Refresh and Display Properties.
 - Taskbar buttons focus, minimise and restore their windows.
 - The Run dialog supports `projects`, `websites`, `about`, `contact`, `cv`, `github`, `notepad`, `iexplore`, `cmd`, `control`, `help`, `pinball`, and `winver`.
-- Command Prompt supports the commands listed by `help` plus `matrix`, `bsod`, and a deliberately disappointing `doom`.
+- Command Prompt supports the commands listed by `help` plus `matrix`, `bsod`, `daggerfall`, and a deliberately disappointing `doom`.
 - Enter the Konami code for a secret desktop effect; click the clock five times for Minesweeper.
 
 Sound starts only after the first pointer or keyboard interaction, respecting browser autoplay policy. Reduced motion, keyboard focus, high contrast, scalable text and larger pointer options are supported.

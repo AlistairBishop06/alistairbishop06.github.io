@@ -30,10 +30,6 @@ export function EmailApp() {
   const { notify } = useSystem(); const [to, setTo] = useState(''); const [subject, setSubject] = useState(''); const [body, setBody] = useState('');
   return <div className="email-app app-fill"><div className="email-toolbar"><button onClick={() => notify('Outlook Express', 'This local demo does not send email. Use the Contact Me form instead.')}><IconGlyph name="mail" size={22} /> Send</button><button><IconGlyph name="save" size={22} /> Save</button><button><IconGlyph name="document" size={22} /> Attach</button></div><label>To: <input value={to} onChange={e => setTo(e.target.value)} /></label><label>Subject: <input value={subject} onChange={e => setSubject(e.target.value)} /></label><textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Write your message..." /></div>;
 }
-export function Minesweeper() {
-  const [seed, setSeed] = useState(0); const [opened, setOpened] = useState<number[]>([]); const mines = [3, 8, 17, 23, 31];
-  return <div className="mines-app app-fill"><div className="mine-header"><span>005</span><button onClick={() => { setOpened([]); setSeed(seed + 1); }}><IconGlyph name="restart" size={27} /></button><span>999</span></div><div className="mine-grid">{Array.from({ length: 36 }, (_, index) => <button key={`${seed}-${index}`} className={opened.includes(index) ? 'open' : ''} onClick={() => setOpened(value => [...value, index])}>{opened.includes(index) ? mines.includes(index) ? '●' : [0,1,1,2,0,1][index % 6] || '' : ''}</button>)}</div><p>Secret clock-click edition</p></div>;
-}
 export function Winver() {
   return <div className="winver app-fill"><div className="winver-brand"><IconGlyph name="windows" size={48} /><span>Alistair Portfolio</span><b>xp</b></div><p>Version 1.0 (Build 2600.xpportfolio)</p><hr /><p>This interactive portfolio is owned by:</p><strong>{profile.name}<br />{profile.university}</strong><p>Physical memory available to Windows: unlimited curiosity</p><button>OK</button></div>;
 }

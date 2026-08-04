@@ -32,6 +32,7 @@ export const achievements = [
   { id: 'matrix', title: 'Follow the White Rabbit', description: 'Activated Matrix mode in Command Prompt.', hint: 'A certain 1999 film has the command you need.', category: 'Hidden Secrets', icon: 'cmd', action: { kind: 'cmd', label: 'Open terminal' } },
   { id: 'bsod', title: 'Task Failed Successfully', description: 'Triggered the harmless Portfolio XP blue screen.', hint: 'Command Prompt understands a classic four-letter Windows failure.', category: 'Hidden Secrets', icon: 'error', action: { kind: 'cmd', label: 'Open terminal' } },
   { id: 'doom', title: 'Can It Run Doom?', description: 'Asked Portfolio XP the most important compatibility question.', hint: 'Try the obvious game title in Command Prompt.', category: 'Hidden Secrets', icon: 'app', action: { kind: 'cmd', label: 'Open terminal' } },
+  { id: 'daggerfall', title: 'Privateer of the Iliac Bay', description: 'Discovered and launched The Elder Scrolls II: Daggerfall.', hint: 'Command Prompt recognises the name of a vast 1996 Elder Scrolls adventure.', category: 'Hidden Secrets', icon: 'app', action: { kind: 'cmd', label: 'Open terminal' } },
   { id: 'minesweeper', title: 'Clockwork Mines', description: 'Discovered the secret Minesweeper game.', hint: 'The taskbar clock rewards persistent clicking.', category: 'Hidden Secrets', icon: 'mines' },
   { id: 'pinball', title: 'Space Cadet', description: 'Launched the classic 3D Pinball experience.', hint: 'Open 3D Pinball from the desktop.', category: 'Hidden Secrets', icon: 'pinball', action: { kind: 'pinball', label: 'Play Pinball' } },
   { id: 'konami', title: 'Meadow Party Mode', description: 'Entered the Konami code on the desktop.', hint: 'Up, Up, Down, Down, Left, Right, Left, Right, B, A.', category: 'Hidden Secrets', icon: 'paint' },
@@ -59,5 +60,6 @@ export const windowAchievements: Partial<Record<WindowKind, AchievementId>> = {
   cmd: 'terminal_opened',
   mines: 'minesweeper',
   pinball: 'pinball',
+  daggerfall: 'daggerfall',
   winver: 'winver',
 };
