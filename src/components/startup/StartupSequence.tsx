@@ -21,6 +21,6 @@ export function StartupSequence({ onComplete, onSkip }: { onComplete: () => void
       <div className="loading-track"><i /><i /><i /></div>
     </div>}
     {phase === 'welcome' && <div className="welcome-word">welcome</div>}
-    <button className="skip-startup" onClick={onSkip}>Skip startup</button>
+    <button className="skip-startup" onClick={onSkip}>{phase === 'welcome' ? 'Continue to desktop' : 'Skip startup'}</button>
   </main>;
 }

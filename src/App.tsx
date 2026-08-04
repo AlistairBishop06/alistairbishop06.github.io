@@ -22,19 +22,24 @@ export default function App() {
   const [firstInteraction, setFirstInteraction] = useState(false);
   const [achievementToast, setAchievementToast] = useState<AchievementId | null>(null);
   const loginPlayed = useRef(false);
-  const bootSoundPlayed = useRef(false);
-  const bootSoundAttempted = useRef(false);
   const achievementProgressRef = useRef(achievementProgress);
   const achievementTimer = useRef<number | null>(null);
   const manager = useWindowManager();
   const play = useSound(settings.soundEnabled, settings.volume);
-  useEffect(() => {
-    if (bootSoundAttempted.current) return;
-    bootSoundAttempted.current = true;
+  const completeStartup = useCallback(() => {
+    loginPlayed.current = true;
+    if (!settings.soundEnabled || settings.volume <= 0) {
+      setStarted(true);
+      return;
+    }
     void play('startup').then(played => {
-      bootSoundPlayed.current = played;
-      if (played) loginPlayed.current = true;
+      if (played) setStarted(true);
     });
+  }, [play, settings.soundEnabled, settings.volume]);
+  const enterStartup = useCallback(() => {
+    loginPlayed.current = true;
+    void play('startup');
+    setStarted(true);
   }, [play]);
   const unlockAchievement = useCallback((id: AchievementId) => {
     if (achievementProgressRef.current[id] || !achievementById.has(id)) return;
@@ -59,17 +64,13 @@ export default function App() {
   useEffect(() => () => { if (achievementTimer.current) window.clearTimeout(achievementTimer.current); }, []);
   useEffect(() => {
     const interact = () => {
-      if (!bootSoundPlayed.current && settings.soundEnabled && settings.volume > 0) {
-        loginPlayed.current = true;
-        void play('startup').then(played => { bootSoundPlayed.current = played; });
-      }
       setFirstInteraction(true);
       window.removeEventListener('pointerdown', interact);
       window.removeEventListener('keydown', interact);
     };
     if (!firstInteraction) { window.addEventListener('pointerdown', interact); window.addEventListener('keydown', interact); }
     return () => { window.removeEventListener('pointerdown', interact); window.removeEventListener('keydown', interact); };
-  }, [firstInteraction, play, settings.soundEnabled, settings.volume]);
+  }, [firstInteraction]);
   useEffect(() => {
     if (!firstInteraction || !started || loginPlayed.current) return;
     loginPlayed.current = true;
@@ -106,7 +107,7 @@ export default function App() {
   const context = useMemo(() => ({ settings, setSettings, play, open, openBrowser, notify, restart, shutDown, triggerBlueScreen, achievementProgress, unlockAchievement }), [settings, setSettings, play, open, openBrowser, notify, restart, shutDown, triggerBlueScreen, achievementProgress, unlockAchievement]);
 
   if (poweredOff) return <main className="powered-off"><p>It is now safe to turn off your computer.</p><button onClick={() => { loginPlayed.current = true; setPoweredOff(false); setStarted(false); play('startup'); window.setTimeout(() => setStarted(true), 3500); }}>Turn Portfolio XP back on</button></main>;
-  if (!started) return <StartupSequence onComplete={() => setStarted(true)} onSkip={() => setStarted(true)} />;
+  if (!started) return <StartupSequence onComplete={completeStartup} onSkip={enterStartup} />;
   return <SystemContext.Provider value={context}>
     <div className={`xp-system theme-${settings.theme} pointer-${settings.pointer} ${settings.highContrast ? 'high-contrast' : ''}`} style={{ fontSize: `${settings.textScale * 13}px` }}>
       <Desktop />

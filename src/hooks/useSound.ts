@@ -47,7 +47,7 @@ export function useSound(enabled: boolean, volume: number) {
 
   useEffect(() => {
     // Prepare only the first post-interaction cue and the tiny command sound.
-    (['click', 'login'] as SoundName[]).forEach(name => {
+    (['click', 'login', 'startup'] as SoundName[]).forEach(name => {
       const audio = new Audio(soundUrl(name));
       audio.preload = 'auto';
       cache.current.set(name, audio);
