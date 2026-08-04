@@ -19,23 +19,23 @@ export default function App() {
   const [started, setStarted] = useState(false);
   const [poweredOff, setPoweredOff] = useState(false);
   const [blueScreen, setBlueScreen] = useState(false);
-  const [firstInteraction, setFirstInteraction] = useState(false);
   const [achievementToast, setAchievementToast] = useState<AchievementId | null>(null);
-  const loginPlayed = useRef(false);
   const startupSoundPending = useRef(true);
   const achievementProgressRef = useRef(achievementProgress);
   const achievementTimer = useRef<number | null>(null);
   const manager = useWindowManager();
   const play = useSound(settings.soundEnabled, settings.volume);
   const completeStartup = useCallback(() => setStarted(true), []);
-  const enterStartup = useCallback(() => {
-    setStarted(true);
-  }, []);
+  const enterStartup = useCallback(() => setStarted(true), []);
   useEffect(() => {
     if (!started || !startupSoundPending.current) return;
-    startupSoundPending.current = false;
-    loginPlayed.current = true;
-    void play('startup');
+    const playStartup = () => {
+      if (!startupSoundPending.current) return;
+      startupSoundPending.current = false;
+      void play('startup');
+    };
+    window.addEventListener('pointerdown', playStartup, { once: true, capture: true });
+    return () => window.removeEventListener('pointerdown', playStartup, { capture: true });
   }, [play, started]);
   const unlockAchievement = useCallback((id: AchievementId) => {
     if (achievementProgressRef.current[id] || !achievementById.has(id)) return;
@@ -59,20 +59,6 @@ export default function App() {
   }, [started]);
   useEffect(() => () => { if (achievementTimer.current) window.clearTimeout(achievementTimer.current); }, []);
   useEffect(() => {
-    const interact = () => {
-      setFirstInteraction(true);
-      window.removeEventListener('pointerdown', interact);
-      window.removeEventListener('keydown', interact);
-    };
-    if (!firstInteraction) { window.addEventListener('pointerdown', interact); window.addEventListener('keydown', interact); }
-    return () => { window.removeEventListener('pointerdown', interact); window.removeEventListener('keydown', interact); };
-  }, [firstInteraction]);
-  useEffect(() => {
-    if (!firstInteraction || !started || loginPlayed.current) return;
-    loginPlayed.current = true;
-    play('login');
-  }, [firstInteraction, started, play]);
-  useEffect(() => {
     const click = (event: PointerEvent) => {
       const control = (event.target as HTMLElement).closest('button, a, [role="button"]') as HTMLElement | null;
       if (control && !control.matches(':disabled') && !control.hasAttribute('data-xp-sound')) play('click');
@@ -92,7 +78,7 @@ export default function App() {
   }, [blueScreen, manager.windows, manager.closeWindow]);
   const restart = useCallback(() => {
     unlockAchievement('restart');
-    play('logoff'); manager.closeAll(); loginPlayed.current = true; setPoweredOff(false); setStarted(false);
+    play('logoff'); manager.closeAll(); setPoweredOff(false); setStarted(false);
     window.setTimeout(() => play('startup'), 1800);
     window.setTimeout(() => setStarted(true), 3600);
   }, [manager.closeAll, play, unlockAchievement]);
@@ -102,7 +88,7 @@ export default function App() {
   const triggerBlueScreen = useCallback(() => { unlockAchievement('bsod'); play('critical'); setBlueScreen(true); }, [play, unlockAchievement]);
   const context = useMemo(() => ({ settings, setSettings, play, open, openBrowser, notify, restart, shutDown, triggerBlueScreen, achievementProgress, unlockAchievement }), [settings, setSettings, play, open, openBrowser, notify, restart, shutDown, triggerBlueScreen, achievementProgress, unlockAchievement]);
 
-  if (poweredOff) return <main className="powered-off"><p>It is now safe to turn off your computer.</p><button onClick={() => { loginPlayed.current = true; setPoweredOff(false); setStarted(false); play('startup'); window.setTimeout(() => setStarted(true), 3500); }}>Turn Portfolio XP back on</button></main>;
+  if (poweredOff) return <main className="powered-off"><p>It is now safe to turn off your computer.</p><button onClick={() => { setPoweredOff(false); setStarted(false); play('startup'); window.setTimeout(() => setStarted(true), 3500); }}>Turn Portfolio XP back on</button></main>;
   if (!started) return <StartupSequence onComplete={completeStartup} onSkip={enterStartup} />;
   return <SystemContext.Provider value={context}>
     <div className={`xp-system theme-${settings.theme} pointer-${settings.pointer} ${settings.highContrast ? 'high-contrast' : ''}`} style={{ fontSize: `${settings.textScale * 13}px` }}>
