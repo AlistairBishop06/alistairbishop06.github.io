@@ -34,6 +34,6 @@ export function ContactApp() {
       <label>Subject:<input value={form.subject} onChange={event => setForm({ ...form, subject: event.target.value })} /></label>
       <label>Message:<textarea value={form.message} onChange={event => setForm({ ...form, message: event.target.value })} /></label>
       <div className="dialog-buttons"><button type="submit" disabled={sending}>{sending ? 'Sending...' : 'Send'}</button><button type="reset" onClick={() => setForm({ name: '', email: '', subject: '', message: '' })}>Clear</button></div>
-    </fieldset><small>Form provider: {endpoint ? 'Connected' : 'Not configured — see README.md'}</small></form>
+    </fieldset><small>Form provider: {endpoint ? 'Connected' : 'Not configured - see README.md'}</small></form>
   </div>;
 }

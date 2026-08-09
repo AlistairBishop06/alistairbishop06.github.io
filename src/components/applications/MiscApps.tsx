@@ -18,7 +18,7 @@ export function DocumentsApp({ recent = false }: { recent?: boolean }) {
 }
 export function HelpApp() {
   const [query, setQuery] = useState('');
-  return <div className="help-app app-fill"><header><IconGlyph name="help" size={52} /><div><h1>Help and Support Center</h1><p>How can we help you?</p></div></header><div className="help-search"><input placeholder="Type a question" value={query} onChange={event => setQuery(event.target.value)} /><button>→</button></div><div className="help-columns"><section><h2>Pick a Help topic</h2><a>Explore this portfolio</a><a>Keyboard and accessibility</a><a>GitHub data and caching</a><a>Using Internet Explorer</a></section><section><h2>Did you know?</h2><p>Double-click desktop icons to open them. Right-click the wallpaper for Display Properties.</p><p>Try <b>winver</b>, <b>matrix</b> or <b>bsod</b> in Command Prompt.</p>{query && <p><b>Search:</b> No online results are required—try the topics on the left.</p>}</section></div></div>;
+  return <div className="help-app app-fill"><header><IconGlyph name="help" size={52} /><div><h1>Help and Support Center</h1><p>How can we help you?</p></div></header><div className="help-search"><input placeholder="Type a question" value={query} onChange={event => setQuery(event.target.value)} /><button>→</button></div><div className="help-columns"><section><h2>Pick a Help topic</h2><a>Explore this portfolio</a><a>Keyboard and accessibility</a><a>GitHub data and caching</a><a>Using Internet Explorer</a></section><section><h2>Did you know?</h2><p>Double-click desktop icons to open them. Right-click the wallpaper for Display Properties.</p><p>Try <b>winver</b>, <b>matrix</b> or <b>bsod</b> in Command Prompt.</p>{query && <p><b>Search:</b> No online results are required - try the topics on the left.</p>}</section></div></div>;
 }
 export function SearchApp() {
   const [query, setQuery] = useState(''); const { open } = useSystem();
@@ -34,6 +34,6 @@ export function Winver() {
   return <div className="winver app-fill"><div className="winver-brand"><IconGlyph name="windows" size={48} /><span>Alistair Portfolio</span><b>xp</b></div><p>Version 1.0 (Build 2600.xpportfolio)</p><hr /><p>This interactive portfolio is owned by:</p><strong>{profile.name}<br />{profile.university}</strong><p>Physical memory available to Windows: unlimited curiosity</p><button>OK</button></div>;
 }
 export function InfoFolder({ mode }: { mode: 'experience' | 'education' }) {
-  const data = mode === 'experience' ? experience.map(item => `${item.role} — ${item.organisation}`) : education.map(item => `${item.qualification} — ${item.institution}`);
+  const data = mode === 'experience' ? experience.map(item => `${item.role} - ${item.organisation}`) : education.map(item => `${item.qualification} - ${item.institution}`);
   return <div>{data.join('\n')}</div>;
 }

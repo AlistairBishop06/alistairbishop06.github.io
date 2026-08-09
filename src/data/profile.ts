@@ -10,8 +10,18 @@ export const profile = {
   email: 'alistairbishop@gmx.co.uk',
   portfolioUrl: 'alistairbishop06.github.io',
   githubUsername: 'alistairbishop06',
-  summary: 'I build practical, playful software across the web, games, computer vision and networking. I enjoy turning technically ambitious ideas into clear, useful experiences.',
-  disciplines: ['Software development', 'Game development', 'Web development', 'Computer vision', 'Networking', 'Digital marketing'],
+  summary: 'Computer Science student building end-to-end software across full-stack web, games, computer vision and networked systems. I turn ambitious ideas into working products - from real-time vision pipelines and multiplayer games to database-backed web applications.', 
+  disciplines: [ 'Software Engineering', 'Full-Stack Development', 'Game Development', 'Computer Vision', 'Networking & Systems', 'Digital Marketing & SEO' ], 
+  recruiter: { 
+    availability: 'Open to 2026–27 software engineering internships and placement opportunities', 
+    targetRoles: [ 'Software Engineer', 'Full-Stack Developer', 'Frontend Engineer', 'Game Developer', 'Computer Vision Engineer' ], 
+    strengths: [ 'Ships end-to-end projects - from architecture and implementation through testing, deployment and iteration.', 'Works across Python, C#, Java, SQL and modern web technologies, with experience spanning frontend, backend, databases and real-time systems.', 'Combines engineering with product thinking - building software around the user rather than the technology alone.', 'Professional experience across network engineering and digital marketing, bringing both technical depth and strong communication skills.' ], 
+    quickFacts: [ { label: 'Education', value: 'BSc Computer Science · University of Exeter' }, 
+      { label: 'Engineering', value: 'Full-stack · Games · Computer Vision · Networks' }, 
+      { label: 'Professional', value: 'Network Engineering · Digital Marketing' }, 
+      { label: 'Leadership', value: 'Python Workshop Leader' } 
+    ],
+  },
   // Icon names are registered in src/components/common/IconGlyph.tsx.
   interests: [
     {

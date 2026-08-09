@@ -14,6 +14,8 @@ export interface SystemSettings {
   username: string;
 }
 
+export type ClippyStatus = 'bin' | 'desktop' | 'returning' | 'deleted';
+
 interface SystemContextValue {
   settings: SystemSettings;
   setSettings: (next: SystemSettings | ((current: SystemSettings) => SystemSettings)) => void;
@@ -26,6 +28,11 @@ interface SystemContextValue {
   triggerBlueScreen: () => void;
   achievementProgress: AchievementProgress;
   unlockAchievement: (id: AchievementId) => void;
+  clippyStatus: ClippyStatus;
+  restoreClippy: () => void;
+  returnClippy: () => void;
+  discardClippy: () => void;
+  resetClippy: () => void;
 }
 
 export const SystemContext = createContext<SystemContextValue | null>(null);

@@ -1,17 +1,36 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { GitHubRepo } from '../../types';
-import { caseStudyById, type CaseStudy } from '../../data/caseStudies';
+import { getCaseStudyForRepository, type CaseStudy } from '../../data/caseStudies';
+import { getRepositoryContext } from '../../services/github';
 import { useSystem } from '../../context/SystemContext';
 import { IconGlyph } from '../common/IconGlyph';
 
-type ProjectTab = 'Overview' | 'Technical' | 'Challenges' | 'Results' | 'Screenshots';
+type ProjectTab = 'Overview' | 'Skills' | 'Technical' | 'Challenges' | 'Results' | 'Screenshots';
 
-export function ProjectCaseStudy({ projectId, repo }: { projectId?: string; repo?: GitHubRepo }) {
-  const project = projectId ? caseStudyById.get(projectId) : undefined;
+export function ProjectCaseStudy({ repo }: { repo?: GitHubRepo }) {
+  const [project, setProject] = useState<CaseStudy | undefined>(() => repo ? getCaseStudyForRepository(repo) : undefined);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const [tab, setTab] = useState<ProjectTab>('Overview');
   const { open, unlockAchievement } = useSystem();
+  useEffect(() => {
+    let live = true;
+    setTab('Overview');
+    if (!repo) {
+      setProject(undefined);
+      setLoadingDetails(false);
+      return () => { live = false; };
+    }
+    const base = getCaseStudyForRepository(repo);
+    setProject(base);
+    setLoadingDetails(true);
+    void getRepositoryContext(repo)
+      .then(context => { if (live) setProject(getCaseStudyForRepository(repo, context)); })
+      .catch(() => { /* Metadata-only case study remains available. */ })
+      .finally(() => { if (live) setLoadingDetails(false); });
+    return () => { live = false; };
+  }, [repo]);
   const tabs = useMemo<ProjectTab[]>(() => [
-    'Overview', 'Technical', 'Challenges', 'Results',
+    'Overview', 'Skills', 'Technical', 'Challenges', 'Results',
     ...(project?.screenshots?.length ? ['Screenshots' as const] : []),
   ], [project]);
 
@@ -30,10 +49,15 @@ export function ProjectCaseStudy({ projectId, repo }: { projectId?: string; repo
     </div>
     <div className="property-page project-page">
       <ProjectHeader project={project} />
+      {loadingDetails && <div className="project-auto-status"><div className="xp-spinner" />Reading the README and project files to build this case study...</div>}
 
       {tab === 'Overview' && <div className="project-overview">
         <p className="project-summary">{project.summary}</p>
         <dl className="project-facts"><dt>Role:</dt><dd>{project.role}</dd><dt>Status:</dt><dd>{project.status}</dd><dt>Repository:</dt><dd>{project.repository}</dd></dl>
+        <div className="project-brief">
+          <section><h2><span>1</span> The problem</h2><p>{project.problem}</p></section>
+          <section><h2><span>2</span> The solution</h2><p>{project.solution}</p></section>
+        </div>
         <h2>Key features</h2>
         <BulletList items={project.highlights} />
       </div>}
@@ -45,6 +69,12 @@ export function ProjectCaseStudy({ projectId, repo }: { projectId?: string; repo
         <DetailCards items={project.technical} />
       </div>}
 
+      {tab === 'Skills' && <div className="project-section">
+        <h2>Relevant skills detected from this repository</h2>
+        <p className="project-skills-intro">These links are generated from the repository’s language, description, topics, README and recognised project files.</p>
+        <div className="project-skill-evidence">{project.relevantSkills.map(skill => <section key={skill.name}><div><IconGlyph name="skills" size={28} /><span><b>{skill.name}</b><small>{skill.level}</small></span></div><p>{skill.reasons.join(' · ')}</p></section>)}</div>
+      </div>}
+
       {tab === 'Challenges' && <div className="project-section">
         <h2>Problems solved</h2>
         <DetailCards items={project.challenges} />
@@ -53,7 +83,8 @@ export function ProjectCaseStudy({ projectId, repo }: { projectId?: string; repo
       {tab === 'Results' && <div className="project-section project-results">
         <h2>Outcome</h2>
         <BulletList items={project.results} />
-        <div className="project-result-banner"><IconGlyph name="info" size={32} /><p>This case study describes shipped functionality from the public project. More measurements can be added to the modular case-study data as they become available.</p></div>
+        <h2>What I would improve next</h2>
+        <BulletList items={project.nextSteps} />
       </div>}
 
       {tab === 'Screenshots' && <div className="project-gallery">

@@ -13,7 +13,7 @@ export function AchievementsApp() {
   return <div className="achievements-app app-fill">
     <header className="achievement-summary">
       <div className="achievement-medal"><IconGlyph name="favorites" size={48} /></div>
-      <div><h1>Portfolio Achievements</h1><p>A guided tour of Alistair’s work, plus Portfolio XP’s hidden secrets.</p>
+      <div><h1>Portfolio Achievements</h1><p>A guided tour of my portfolio, plus a selection of secrets and callbacks to Windows XP and classic 90s media.</p>
         <div className="achievement-progress" aria-label={`${percent}% complete`}><i style={{ width: `${percent}%` }} /></div>
         <strong>{unlocked} of {achievements.length} unlocked · {percent}% complete</strong>
       </div>
@@ -45,6 +45,6 @@ export function AchievementsApp() {
         </article>;
       })}
     </div>
-    <footer><IconGlyph name="info" size={18} /> Progress is saved only in this browser. Secret descriptions are revealed when unlocked.</footer>
+    <footer><IconGlyph name="info" size={18} /> Progress is saved, clear cookies and site data to restart.</footer>
   </div>;
 }

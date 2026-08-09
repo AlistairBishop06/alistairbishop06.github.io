@@ -25,14 +25,14 @@ npm run preview
 
 All core personal data lives in `src/data/`:
 
-- `profile.ts` — name, headline, summary, email and GitHub username
-- `education.ts` and `experience.ts` — CV/About entries
-- `skills.ts` — installed technologies and skills
-- `socialLinks.ts` — GitHub, LinkedIn and portfolio links
-- `featuredProjects.ts` — featured order derived from the case-study collection
-- `caseStudies.ts` — featured-project titles, summaries, decisions, challenges, results, links and screenshots
-- `achievements.ts` — guided-tour and secret achievement definitions, hints, icons and launch actions
-- `deployedWebsites.ts` — manually curated deployments
+- `profile.ts` - name, headline, summary, email and GitHub username
+- `education.ts` and `experience.ts` - CV/About entries
+- `skills.ts` - installed technologies, proficiency labels and automatic repository-matching signals
+- `socialLinks.ts` - GitHub, LinkedIn and portfolio links
+- `featuredProjects.ts` - repository names shown in the Featured filter; it does not contain case-study content
+- `caseStudies.ts` - automatic GitHub and repository-context case-study generator
+- `achievements.ts` - guided-tour and secret achievement definitions, hints, icons and launch actions
+- `deployedWebsites.ts` - manually curated deployments
 
 Each manual website entry supports:
 
@@ -75,27 +75,19 @@ Do not hotlink runtime assets: keep them beneath `public/assets/` so the site re
 
 `src/services/github.ts` loads every page of public repositories for `alistairbishop06` with `per_page=100`, excludes forks by default, applies local featured-project ordering, and sorts remaining repositories by update time, stars and name. The Explorer View menu can reveal forks.
 
-Successful repository responses are cached in `localStorage` for 30 minutes. READMEs are cached for two hours. If GitHub is rate-limited or offline, the most recent cache is used and marked as stale. Without a cache, the Explorer shows the API error and a Retry button. No client-side token is used or exposed.
+Successful repository responses are cached in `localStorage` for 30 minutes. Full README lookups are cached for two hours, while repository context is cached for twelve hours. Context cache keys include GitHub’s repository update timestamp, so a newly detected commit immediately invalidates the previous generated content. If GitHub is rate-limited or offline, the most recent repository cache is used and marked as stale. Without a cache, the Explorer shows the API error and a Retry button. No client-side token is used or exposed.
 
 To raise API limits in production, proxy GitHub requests through a serverless function and keep `GITHUB_TOKEN` only in that server-side environment. Never place it in a `VITE_` variable because Vite exposes those variables to the browser.
 
 README lookup supports `README.md`, `README.MD`, `readme.md`, `README`, and `readme.txt`. Notepad defaults to plain text and offers safe GFM rendering with raw HTML disabled.
 
-Featured repositories open as modular Project Properties case studies. Their order and presentation come from `src/data/caseStudies.ts`; every other repository still opens its README in Notepad. Visitors see Featured projects by default and can switch to All Projects from the Explorer toolbar.
+Every repository opens as a modular Project Properties case study. All content - including titles, summaries, problems, solutions, features, technical context, challenges, results, next steps, screenshots and relevant skills - is generated from its GitHub language, description, topics, deployment URL, README and recognised project files. There are no hand-written case-study overrides. Visitors see the repositories selected by `featuredProjects.ts` first and can switch to All Projects from the Explorer toolbar.
 
-To add real project images, place them in `public/assets/projects/` and add entries to the relevant case study:
+The context loader recognises common manifests including `package.json`, `pyproject.toml`, `requirements.txt`, `pom.xml`, `build.gradle`, Unity project settings and Docker configuration. Its findings are cached locally and shared by the case-study and Skills applications.
 
-```ts
-screenshots: [
-  {
-    src: './assets/projects/my-project.png',
-    alt: 'Accessible description of the project screen',
-    caption: 'What this screen demonstrates.',
-  },
-]
-```
+The Skills & Technologies application matches every non-fork repository against modular signals in `src/data/skills.ts`. It considers the primary language, repository name, description, topics, cached README and detected project files, then shows the evidence used for each match. Adding a relevant dependency, language, topic or README reference automatically links future repositories without another code change. The same matched skills appear inside each generated case study.
 
-The Screenshots tab appears automatically when at least one image is configured.
+To add project screenshots, include them in the repository README using normal Markdown image syntax and useful alternative text. The generator ignores common badges, logos and status shields, then uses up to four remaining images and their alternative text to build the Screenshots tab automatically.
 
 ## Achievements and guided tour
 
@@ -111,7 +103,7 @@ Typing `daggerfall` in Command Prompt opens a hosted browser version of the game
 
 The Deployed Websites folder shows one entry for each non-fork repository with a valid external URL in GitHub's Website (`homepage`) field. It does not invent GitHub Pages addresses or scrape links from READMEs. Duplicate website URLs are removed. Entries in `src/data/deployedWebsites.ts` can rename, describe, iconise or feature a matching repository, but cannot create an extra website by themselves.
 
-Modern sites commonly send `X-Frame-Options` or Content Security Policy headers that prohibit iframes. GitHub projects first open their README in Notepad; the green “CLICK ME” button then opens the repository in a real browser tab. Internet Explorer starts at Google's iframe-compatible homepage, while deployment links attempt the live internal iframe and include a visible fallback control.
+Modern sites commonly send `X-Frame-Options` or Content Security Policy headers that prohibit iframes. Project case studies provide separate README, live-demo and GitHub source actions; external GitHub pages open in a real browser tab. Internet Explorer starts at Google's iframe-compatible homepage, while deployment links attempt the live internal iframe and include a visible fallback control.
 
 ## Contact form
 

@@ -15,8 +15,10 @@ export interface AchievementDefinition {
 export const achievements = [
   { id: 'booted', title: 'Welcome to Portfolio XP', description: 'Booted the operating system and met Alistair.', hint: 'Start Portfolio XP.', category: 'Portfolio Tour', icon: 'windows', action: { kind: 'welcome', label: 'Start here' } },
   { id: 'achievement_hunter', title: 'Achievement Hunter', description: 'Opened the Achievements guide.', hint: 'Open Achievements from the desktop or Start menu.', category: 'Portfolio Tour', icon: 'favorites', action: { kind: 'achievements', label: 'Open guide' } },
-  { id: 'projects_opened', title: 'First Look', description: 'Opened Alistair’s curated project collection.', hint: 'Open My Projects.', category: 'Portfolio Tour', icon: 'folder', action: { kind: 'projects', label: 'View projects' } },
-  { id: 'case_study_opened', title: 'Under the Hood', description: 'Opened a featured Project Properties case study.', hint: 'Double-click a featured project.', category: 'Portfolio Tour', icon: 'app', action: { kind: 'projects', label: 'Choose a project' } },
+  { id: 'hire_opened', title: 'Ready to Recruit', description: 'Opened Alistair’s recruiter quick view.', hint: 'Open Hire Me from the desktop or Start menu.', category: 'Portfolio Tour', icon: 'contact', action: { kind: 'hire', label: 'Quick view' } },
+  { id: 'skills_opened', title: 'Capability Check', description: 'Explored Alistair’s technical skills and project evidence.', hint: 'Open Skills & Tools.', category: 'Portfolio Tour', icon: 'skills', action: { kind: 'skills', label: 'View skills' } },
+  { id: 'projects_opened', title: 'First Look', description: 'Opened Alistair’s generated project collection.', hint: 'Open My Projects.', category: 'Portfolio Tour', icon: 'folder', action: { kind: 'projects', label: 'View projects' } },
+  { id: 'case_study_opened', title: 'Under the Hood', description: 'Opened a Project Properties case study.', hint: 'Double-click any repository in My Projects.', category: 'Portfolio Tour', icon: 'app', action: { kind: 'projects', label: 'Choose a project' } },
   { id: 'all_projects', title: 'The Full Archive', description: 'Looked beyond the featured work at every public repository.', hint: 'Use the All Projects toggle in My Projects.', category: 'Portfolio Tour', icon: 'folder', action: { kind: 'projects', label: 'Browse projects' } },
   { id: 'readme_opened', title: 'Read the Manual', description: 'Opened a project README in Notepad.', hint: 'Use Read README inside a case study, or open a non-featured repository.', category: 'Portfolio Tour', icon: 'notepad', action: { kind: 'projects', label: 'Find a README' } },
   { id: 'live_demo', title: 'Ship It', description: 'Launched one of Alistair’s deployed projects.', hint: 'Choose Launch Live Demo inside a case study.', category: 'Portfolio Tour', icon: 'websites', action: { kind: 'projects', label: 'Find a live demo' } },
@@ -38,6 +40,7 @@ export const achievements = [
   { id: 'konami', title: 'Meadow Party Mode', description: 'Entered the Konami code on the desktop.', hint: 'Up, Up, Down, Down, Left, Right, Left, Right, B, A.', category: 'Hidden Secrets', icon: 'paint' },
   { id: 'computer_clicks', title: 'One Computer Is Enough', description: 'Tried very hard to open My Computer repeatedly.', hint: 'Open the My Computer desktop icon four times.', category: 'Hidden Secrets', icon: 'computer', action: { kind: 'computer', label: 'My Computer' } },
   { id: 'recycle_empty', title: 'Digital Spring Cleaning', description: 'Emptied the portfolio Recycle Bin.', hint: 'The deleted files are waiting in Recycle Bin.', category: 'Hidden Secrets', icon: 'recycle', action: { kind: 'recycle', label: 'Recycle Bin' } },
+  { id: 'clippy_returned', title: 'It Looks Like You\'re Recycling', description: 'Restored Clippy, then dragged him back into the Recycle Bin.', hint: 'Restore an unusually helpful executable from the Recycle Bin, then reconsider.', category: 'Hidden Secrets', icon: 'clippy' },
   { id: 'winver', title: 'Version Historian', description: 'Found the Portfolio XP version information.', hint: 'Run the traditional Windows version command.', category: 'Hidden Secrets', icon: 'windows', action: { kind: 'run', label: 'Open Run' } },
   { id: 'restart', title: 'Have You Tried Rebooting?', description: 'Restarted Portfolio XP.', hint: 'Use Turn Off Computer and choose Restart.', category: 'Hidden Secrets', icon: 'restart' },
   { id: 'shutdown', title: 'It Is Now Safe', description: 'Shut Portfolio XP down completely.', hint: 'Use Turn Off Computer and choose Turn Off.', category: 'Hidden Secrets', icon: 'power' },
@@ -50,6 +53,8 @@ export const achievementById = new Map<AchievementId, AchievementDefinition>(ach
 
 export const windowAchievements: Partial<Record<WindowKind, AchievementId>> = {
   achievements: 'achievement_hunter',
+  hire: 'hire_opened',
+  skills: 'skills_opened',
   projects: 'projects_opened',
   project: 'case_study_opened',
   websites: 'websites_opened',

@@ -3,8 +3,9 @@ import type { BrowserTarget, WindowKind } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useSound } from './hooks/useSound';
 import { useWindowManager } from './hooks/useWindowManager';
-import { SystemContext, type SystemSettings } from './context/SystemContext';
+import { SystemContext, type ClippyStatus, type SystemSettings } from './context/SystemContext';
 import { Desktop } from './components/desktop/Desktop';
+import { ClippyAssistant } from './components/desktop/ClippyAssistant';
 import { Taskbar } from './components/taskbar/Taskbar';
 import { WindowManager } from './components/windows/WindowManager';
 import { StartupSequence } from './components/startup/StartupSequence';
@@ -19,10 +20,12 @@ export default function App() {
   const [started, setStarted] = useState(false);
   const [poweredOff, setPoweredOff] = useState(false);
   const [blueScreen, setBlueScreen] = useState(false);
+  const [clippyStatus, setClippyStatus] = useState<ClippyStatus>('bin');
   const [achievementToast, setAchievementToast] = useState<AchievementId | null>(null);
   const startupSoundPending = useRef(true);
   const achievementProgressRef = useRef(achievementProgress);
   const achievementTimer = useRef<number | null>(null);
+  const clippyTimer = useRef<number | null>(null);
   const manager = useWindowManager();
   const play = useSound(settings.soundEnabled, settings.volume);
   const completeStartup = useCallback(() => setStarted(true), []);
@@ -47,6 +50,26 @@ export default function App() {
     if (achievementTimer.current) window.clearTimeout(achievementTimer.current);
     achievementTimer.current = window.setTimeout(() => setAchievementToast(null), 4200);
   }, [play, setAchievementProgress]);
+  const restoreClippy = useCallback(() => {
+    if (clippyTimer.current) window.clearTimeout(clippyTimer.current);
+    setClippyStatus('desktop');
+  }, []);
+  const discardClippy = useCallback(() => {
+    if (clippyTimer.current) window.clearTimeout(clippyTimer.current);
+    setClippyStatus('deleted');
+  }, []);
+  const resetClippy = useCallback(() => {
+    if (clippyTimer.current) window.clearTimeout(clippyTimer.current);
+    setClippyStatus('bin');
+  }, []);
+  const returnClippy = useCallback(() => {
+    if (clippyStatus !== 'desktop') return;
+    setClippyStatus('returning');
+    unlockAchievement('clippy_returned');
+    void play('empty');
+    if (clippyTimer.current) window.clearTimeout(clippyTimer.current);
+    clippyTimer.current = window.setTimeout(() => setClippyStatus('bin'), 1400);
+  }, [clippyStatus, play, unlockAchievement]);
   const open = useCallback((kind: WindowKind, payload?: Record<string, unknown>, title?: string) => {
     manager.openWindow(kind, payload, title);
     const achievement = windowAchievements[kind];
@@ -57,7 +80,10 @@ export default function App() {
     const timer = window.setTimeout(() => { open('welcome'); unlockAchievement('booted'); }, 450);
     return () => window.clearTimeout(timer);
   }, [started]);
-  useEffect(() => () => { if (achievementTimer.current) window.clearTimeout(achievementTimer.current); }, []);
+  useEffect(() => () => {
+    if (achievementTimer.current) window.clearTimeout(achievementTimer.current);
+    if (clippyTimer.current) window.clearTimeout(clippyTimer.current);
+  }, []);
   useEffect(() => {
     const click = (event: PointerEvent) => {
       const control = (event.target as HTMLElement).closest('button, a, [role="button"]') as HTMLElement | null;
@@ -86,13 +112,20 @@ export default function App() {
   const openBrowser = useCallback((target?: BrowserTarget) => open('browser', target ? { target } : undefined), [open]);
   const notify = useCallback((title: string, message: string, type: 'info' | 'error' = 'info', withSound = true) => { if (withSound) play(type); manager.openWindow('message', { title, message, type }, title); }, [manager.openWindow, play]);
   const triggerBlueScreen = useCallback(() => { unlockAchievement('bsod'); play('critical'); setBlueScreen(true); }, [play, unlockAchievement]);
-  const context = useMemo(() => ({ settings, setSettings, play, open, openBrowser, notify, restart, shutDown, triggerBlueScreen, achievementProgress, unlockAchievement }), [settings, setSettings, play, open, openBrowser, notify, restart, shutDown, triggerBlueScreen, achievementProgress, unlockAchievement]);
+  const context = useMemo(() => ({
+    settings, setSettings, play, open, openBrowser, notify, restart, shutDown, triggerBlueScreen,
+    achievementProgress, unlockAchievement, clippyStatus, restoreClippy, returnClippy, discardClippy, resetClippy,
+  }), [
+    settings, setSettings, play, open, openBrowser, notify, restart, shutDown, triggerBlueScreen,
+    achievementProgress, unlockAchievement, clippyStatus, restoreClippy, returnClippy, discardClippy, resetClippy,
+  ]);
 
   if (poweredOff) return <main className="powered-off"><p>It is now safe to turn off your computer.</p><button onClick={() => { setPoweredOff(false); setStarted(false); play('startup'); window.setTimeout(() => setStarted(true), 3500); }}>Turn Portfolio XP back on</button></main>;
   if (!started) return <StartupSequence onComplete={completeStartup} onSkip={enterStartup} />;
   return <SystemContext.Provider value={context}>
     <div className={`xp-system theme-${settings.theme} pointer-${settings.pointer} ${settings.highContrast ? 'high-contrast' : ''}`} style={{ fontSize: `${settings.textScale * 13}px` }}>
       <Desktop />
+      <ClippyAssistant />
       <WindowManager windows={manager.windows} close={manager.closeWindow} focus={manager.focusWindow} minimize={manager.minimizeWindow} maximize={manager.toggleMaximize} updateRect={manager.updateRect} />
       <Taskbar windows={manager.windows} toggleWindow={manager.taskbarToggle} showDesktop={manager.showDesktop} />
       {achievementToast && <button className="achievement-toast" onClick={() => { setAchievementToast(null); open('achievements'); }}><IconGlyph name="favorites" size={34} /><span><small>Achievement unlocked</small><b>{achievementById.get(achievementToast)?.title}</b></span></button>}

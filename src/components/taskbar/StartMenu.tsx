@@ -4,8 +4,8 @@ import { IconGlyph } from '../common/IconGlyph';
 import { useSystem } from '../../context/SystemContext';
 
 const left: Array<[string, IconName, WindowKind, string?]> = [
-  ['Start Here', 'windows', 'welcome', 'Portfolio guide'], ['Internet', 'browser', 'browser', 'Internet Explorer'],
-  ['Achievements', 'favorites', 'achievements'], ['My Projects', 'folder', 'projects'], ['Deployed Websites', 'websites', 'websites'], ['About Me', 'about', 'about'], ['Contact Me', 'contact', 'contact'],
+  ['Hire Me', 'contact', 'hire', 'Recruiter quick view'], ['Start Here', 'windows', 'welcome', 'Portfolio guide'],
+  ['My Projects', 'folder', 'projects'], ['Skills & Tools', 'skills', 'skills'], ['Deployed Websites', 'websites', 'websites'], ['About Me', 'about', 'about'], ['Contact Me', 'contact', 'contact'],
 ];
 const right: Array<[string, IconName, WindowKind]> = [
   ['My Documents', 'documents', 'documents'], ['My Recent Documents', 'recent', 'recent'], ['My Computer', 'computer', 'computer'],

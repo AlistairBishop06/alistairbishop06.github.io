@@ -22,6 +22,8 @@ import { DocumentsApp, EmailApp, HelpApp, SearchApp, Winver } from './MiscApps';
 import { ProjectCaseStudy } from './ProjectCaseStudy';
 import { WelcomeApp } from './WelcomeApp';
 import { AchievementsApp } from './AchievementsApp';
+import { HireMeApp } from './HireMeApp';
+import { SkillsApp } from './SkillsApp';
 
 export function ApplicationRouter({ win, close }: { win: XPWindow; close: () => void }) {
   const payload = win.payload || {};
@@ -36,9 +38,11 @@ export function ApplicationRouter({ win, close }: { win: XPWindow; close: () => 
     case 'recycle': application = <RecycleBin />; break; case 'cmd': application = <CommandPrompt close={close} />; break; case 'run': application = <RunDialog close={close} />; break; case 'shutdown': application = <ShutdownDialog close={close} />; break;
     case 'message': application = <MessageBox title={payload.title as string | undefined} message={payload.message as string | undefined} type={payload.type as 'info' | 'error' | undefined} close={close} />; break;
     case 'help': application = <HelpApp />; break; case 'search': application = <SearchApp />; break; case 'documents': application = <DocumentsApp />; break; case 'recent': application = <DocumentsApp recent />; break; case 'email': application = <EmailApp />; break; case 'mines': application = <IntegratedMinesweeper />; break; case 'pinball': application = <SpaceCadetPinball />; break; case 'daggerfall': application = <Daggerfall />; break; case 'winver': application = <Winver />; break;
-    case 'project': application = <ProjectCaseStudy projectId={payload.projectId as string | undefined} repo={payload.repo as GitHubRepo | undefined} />; break;
+    case 'project': application = <ProjectCaseStudy repo={payload.repo as GitHubRepo | undefined} />; break;
     case 'welcome': application = <WelcomeApp close={close} />; break;
     case 'achievements': application = <AchievementsApp />; break;
+    case 'hire': application = <HireMeApp />; break;
+    case 'skills': application = <SkillsApp initialSkill={payload.skill as string | undefined} />; break;
     default: application = <div className="missing-app">This application is not installed.</div>;
   }
   return <Suspense fallback={<div className="loading-state"><div className="xp-spinner" />Opening application...</div>}>{application}</Suspense>;

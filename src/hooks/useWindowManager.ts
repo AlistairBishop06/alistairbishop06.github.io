@@ -26,9 +26,11 @@ const defaults: Record<WindowKind, { title: string; icon: IconName; rect: Rect }
   pinball: { title: '3D Pinball for Windows - Space Cadet', icon: 'pinball', rect: { x: 205, y: 70, width: 608, height: 477 } },
   daggerfall: { title: 'The Elder Scrolls II: Daggerfall', icon: 'app', rect: { x: 70, y: 35, width: 900, height: 560 } },
   winver: { title: 'About Windows', icon: 'windows', rect: { x: 280, y: 150, width: 460, height: 310 } },
-  welcome: { title: 'Welcome to Alistair\'s Portfolio', icon: 'windows', rect: { x: 210, y: 85, width: 640, height: 500 } },
+  welcome: { title: 'Welcome to Alistair\'s Portfolio', icon: 'windows', rect: { x: 190, y: 85, width: 680, height: 540 } },
   project: { title: 'Project Properties', icon: 'app', rect: { x: 135, y: 55, width: 790, height: 570 } },
   achievements: { title: 'Portfolio Achievements', icon: 'favorites', rect: { x: 155, y: 60, width: 740, height: 550 } },
+  hire: { title: 'Hire Alistair - Candidate Summary', icon: 'contact', rect: { x: 125, y: 48, width: 820, height: 620 } },
+  skills: { title: 'Skills & Technologies', icon: 'skills', rect: { x: 140, y: 55, width: 800, height: 570 } },
 };
 
 export function useWindowManager() {

@@ -1,4 +1,10 @@
-import { caseStudies } from './caseStudies';
+// This list controls only which repositories appear in the Featured view.
+// Their titles, descriptions, case studies and skills are generated from GitHub.
+export const featuredProjects = [
+  'Simpsons-Episode-Archive',
+  'YoutubeShort-Ranked-Video-Maker',
+  'Chaos-Chess',
+  'World-Generator-and-Explorer',
+];
 
-// Case-study order is also the featured-project order throughout Portfolio XP.
-export const featuredProjects = caseStudies.map(project => project.repository);
+export const featuredProjectNames = new Set(featuredProjects.map(name => name.toLowerCase()));

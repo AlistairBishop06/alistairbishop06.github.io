@@ -17,7 +17,7 @@ export function AboutMe({ initialTab = 'General' }: { initialTab?: AboutTab }) {
       {tab === 'General' && <><div className="about-hero"><div className="profile-placeholder"><img src={profile.profileImage} alt={`${profile.name} profile`} /></div><div><h1>{profile.name}</h1><p>{profile.headline}</p><p>{profile.university}</p></div></div><div className="bevel-separator" /><p className="about-summary">{profile.summary}</p><dl><dt>Location:</dt><dd>{profile.location}</dd><dt>Focus:</dt><dd>{profile.disciplines.join(', ')}</dd></dl></>}
       {tab === 'Education' && <SectionList items={education.map(item => ({ title: item.qualification, subtitle: `${item.institution} · ${item.period}`, body: item.details }))} />}
       {tab === 'Experience' && <SectionList items={experience.map(item => ({ title: item.role, subtitle: `${item.organisation} · ${item.period}`, body: item.details }))} />}
-      {tab === 'Skills' && <div className="skill-groups">{skillGroups.map(group => <section key={group.name}><h3>{group.name}</h3><div>{group.items.map(item => <span key={item}>{item}</span>)}</div></section>)}</div>}
+      {tab === 'Skills' && <div className="skill-groups">{skillGroups.map(group => <section key={group.name}><h3>{group.name}</h3><div>{group.items.map(item => <span key={item.name} title={item.description}>{item.name}</span>)}</div></section>)}</div>}
       {tab === 'Interests' && <div className="interest-list">{profile.interests.map(item => <div key={item.title}><IconGlyph name={item.icon} size={34} /><span><b>{item.title}</b><small>{item.description}</small></span></div>)}</div>}
     </div>
     <div className="dialog-buttons"><button>OK</button><button>Cancel</button><button disabled>Apply</button></div>

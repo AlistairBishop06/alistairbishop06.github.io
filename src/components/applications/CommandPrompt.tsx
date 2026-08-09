@@ -3,7 +3,7 @@ import { profile } from '../../data/profile';
 import { skillGroups } from '../../data/skills';
 import { education } from '../../data/education';
 import { experience } from '../../data/experience';
-import { caseStudyByRepository } from '../../data/caseStudies';
+import { getCaseStudyForRepository } from '../../data/caseStudies';
 import { useGitHubRepositories } from '../../hooks/useGitHubRepositories';
 import { useSystem } from '../../context/SystemContext';
 
@@ -91,11 +91,11 @@ export function CommandPrompt({ close }: { close: () => void }) {
       case '': break;
       case 'help': output('ABOUT  SKILLS  PROJECTS  WEBSITES  EXPERIENCE  EDUCATION\nCONTACT  GITHUB  CLEAR  DIR  CD  TREE  WHOAMI  HOSTNAME\nDATE  TIME  VER  EXIT  MATRIX  BSOD  DOOM'); break;
       case 'about': output(`${profile.name}\n${profile.headline} at ${profile.university}\n${profile.summary}`); break;
-      case 'skills': output(skillGroups.map(group => `${group.name}: ${group.items.join(', ')}`)); break;
+      case 'skills': output(skillGroups.map(group => `${group.name}: ${group.items.map(item => item.name).join(', ')}`)); break;
       case 'projects': output(projects.length ? projects : 'Repository data is still loading.'); break;
       case 'websites': open('websites'); output('Opening Deployed Websites...'); break;
-      case 'experience': output(experience.map(item => `${item.period}  ${item.role} — ${item.organisation}`)); break;
-      case 'education': output(education.map(item => `${item.qualification} — ${item.institution}`)); break;
+      case 'experience': output(experience.map(item => `${item.period}  ${item.role} - ${item.organisation}`)); break;
+      case 'education': output(education.map(item => `${item.qualification} - ${item.institution}`)); break;
       case 'contact': output(`${profile.email}\ngithub.com/${profile.githubUsername}`); break;
       case 'github': window.open(`https://github.com/${profile.githubUsername}`, '_blank', 'noopener,noreferrer'); output('Opening GitHub in a new browser tab...'); break;
       case 'clear': setLines([]); break;
@@ -115,9 +115,8 @@ export function CommandPrompt({ close }: { close: () => void }) {
       case 'daggerfall': open('daggerfall'); output('Opening The Elder Scrolls II: Daggerfall...'); break;
       default: {
         const repo = repos.find(item => item.name.toLowerCase() === raw.toLowerCase());
-        const study = repo ? caseStudyByRepository.get(repo.name.toLowerCase()) : undefined;
-        if (repo && study) { open('project', { projectId: study.id, repo }, `${study.title} - Project Properties`); output(`Opening ${study.title} case study...`); }
-        else if (repo) { unlockAchievement('readme_opened'); open('notepad', { repo }, `${repo.name} - Notepad`); output(`Opening ${repo.name} README...`); }
+        const study = repo ? getCaseStudyForRepository(repo) : undefined;
+        if (repo && study) { open('project', { repo }, `${study.title} - Project Properties`); output(`Opening ${study.title} case study...`); }
         else output(`'${command}' is not recognized as an internal or external command,\noperable program or batch file.`);
       }
     }

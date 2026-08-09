@@ -8,6 +8,8 @@ import { resolveWallpaper } from '../../data/wallpapers';
 const icons: Array<{ id: string; name: string; icon: IconName; kind: WindowKind }> = [
   { id: 'welcome', name: 'Start Here', icon: 'windows', kind: 'welcome' },
   { id: 'achievements', name: 'Achievements', icon: 'favorites', kind: 'achievements' },
+  { id: 'hire', name: 'Hire Me', icon: 'contact', kind: 'hire' },
+  { id: 'skills', name: 'Skills & Tools', icon: 'skills', kind: 'skills' },
   { id: 'projects', name: 'My Projects', icon: 'folder', kind: 'projects' },
   { id: 'websites', name: 'Deployed Websites', icon: 'websites', kind: 'websites' },
   { id: 'about', name: 'About Me', icon: 'about', kind: 'about' },
@@ -65,9 +67,9 @@ export function Desktop() {
     onContextMenu={event => { event.preventDefault(); setContext({ x: event.clientX, y: event.clientY }); }}
   >
     <div className={`desktop-icons ${iconsVisible ? '' : 'hidden'}`}>
-      {icons.map(item => <DesktopIcon key={item.id} {...item} selected={selected === item.id} onSelect={setSelected} onOpen={() => openIcon(item.kind)} />)}
+      {icons.map(item => <DesktopIcon key={item.id} {...item} selected={selected === item.id} onSelect={setSelected} onOpen={() => openIcon(item.kind)} dropTarget={item.id === 'recycle'} />)}
     </div>
     {context && <DesktopContextMenu x={context.x} y={context.y} onClose={() => setContext(null)} onRefresh={refresh} onProperties={() => { setContext(null); open('display'); }} />}
-    <div className="mobile-notice">Best experienced on a desktop — touch controls are enabled.</div>
+    <div className="mobile-notice">Best experienced on a desktop - touch controls are enabled.</div>
   </main>;
 }
