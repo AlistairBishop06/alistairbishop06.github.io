@@ -1,5 +1,5 @@
 import type { DeployedWebsite, GitHubRepo } from '../types';
-import { featuredProjects } from '../data/featuredProjects';
+import { featuredProjectRank } from '../data/featuredProjects';
 import { fallbackProjects } from '../data/fallbackProjects';
 
 const API = 'https://api.github.com';
@@ -65,12 +65,11 @@ export async function getAllRepositories(username: string, force = false): Promi
 }
 
 export function sortRepositories(repos: GitHubRepo[], includeForks: boolean) {
-  const featured = new Map(featuredProjects.map((name, index) => [name.toLowerCase(), index]));
   return repos
     .filter(repo => includeForks || !repo.fork)
     .sort((a, b) => {
-      const af = featured.get(a.name.toLowerCase());
-      const bf = featured.get(b.name.toLowerCase());
+      const af = featuredProjectRank(a.name);
+      const bf = featuredProjectRank(b.name);
       if (af !== undefined || bf !== undefined) return (af ?? 999) - (bf ?? 999);
       const recent = +new Date(b.updated_at) - +new Date(a.updated_at);
       if (recent) return recent;

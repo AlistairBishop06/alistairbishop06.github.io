@@ -29,7 +29,7 @@ All core personal data lives in `src/data/`:
 - `education.ts` and `experience.ts` - CV/About entries
 - `skills.ts` - installed technologies, proficiency labels and automatic repository-matching signals
 - `socialLinks.ts` - GitHub, LinkedIn and portfolio links
-- `featuredProjects.ts` - repository names shown in the Featured filter; it does not contain case-study content
+- `featuredProjects.ts` - the one short, ordered list that controls the Featured filter; add, remove or reorder repository names here
 - `caseStudies.ts` - automatic GitHub and repository-context case-study generator
 - `achievements.ts` - guided-tour and secret achievement definitions, hints, icons and launch actions
 - `deployedWebsites.ts` - manually curated deployments
@@ -81,7 +81,9 @@ To raise API limits in production, proxy GitHub requests through a serverless fu
 
 README lookup supports `README.md`, `README.MD`, `readme.md`, `README`, and `readme.txt`. Notepad defaults to plain text and offers safe GFM rendering with raw HTML disabled.
 
-Every repository opens as a modular Project Properties case study. All content - including titles, summaries, problems, solutions, features, technical context, challenges, results, next steps, screenshots and relevant skills - is generated from its GitHub language, description, topics, deployment URL, README and recognised project files. There are no hand-written case-study overrides. Visitors see the repositories selected by `featuredProjects.ts` first and can switch to All Projects from the Explorer toolbar.
+Every repository opens as an adaptive Project Properties case study. The generator reads the README's actual hierarchy and turns documented feature areas, workflows, architecture, project structure, configuration, security, privacy, testing, performance and deployment notes into purpose-built sections. It also enriches the Build tab from recognised manifests. Tabs only appear when the repository has meaningful source material for them, and the generator avoids inventing undocumented challenges or outcomes. Visitors see the repositories selected by `featuredProjects.ts` first and can switch to All Projects from the Explorer toolbar.
+
+To change the featured work, edit only the array at the top of `src/data/featuredProjects.ts`. Use the GitHub repository name exactly as it appears in the URL; the line order is the display order. Case-study copy remains automatic, so there is nothing else to update.
 
 The context loader recognises common manifests including `package.json`, `pyproject.toml`, `requirements.txt`, `pom.xml`, `build.gradle`, Unity project settings and Docker configuration. Its findings are cached locally and shared by the case-study and Skills applications.
 

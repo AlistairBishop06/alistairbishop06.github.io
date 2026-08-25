@@ -14,37 +14,63 @@ export interface CaseStudySkill {
   reasons: string[];
 }
 
+export interface CaseStudyGroup {
+  title: string;
+  introduction?: string;
+  items: string[];
+}
+
+export interface CaseStudyFact {
+  label: string;
+  value: string;
+}
+
 export interface CaseStudy {
   id: string;
   repository: string;
   title: string;
   tagline: string;
   summary: string;
-  problem: string;
-  solution: string;
   role: string;
   status: string;
   stack: string[];
   relevantSkills: CaseStudySkill[];
-  highlights: string[];
-  technical: Array<{ title: string; detail: string }>;
-  challenges: Array<{ title: string; detail: string }>;
-  results: string[];
-  nextSteps: string[];
+  facts: CaseStudyFact[];
+  overview: Array<{ title: string; detail: string }>;
+  capabilities: CaseStudyGroup[];
+  workflows: CaseStudyGroup[];
+  architecture: CaseStudyGroup[];
+  engineering: CaseStudyGroup[];
+  dependencies: string[];
+  scripts: Array<{ name: string; command: string }>;
   liveUrl?: string;
   repositoryUrl: string;
   screenshots?: CaseStudyScreenshot[];
   accent: string;
   generated: true;
   sourceUpdatedAt: string;
+  sourceNote: string;
+}
+
+interface MarkdownSection {
+  title: string;
+  level: number;
+  lines: string[];
+  children: MarkdownSection[];
 }
 
 const languageAccents: Record<string, string> = {
-  TypeScript: '#3178c6', JavaScript: '#d8bb18', Python: '#3572a5', Java: '#b07219',
+  TypeScript: '#3178c6', JavaScript: '#c6a813', Python: '#3572a5', Java: '#b07219',
   'C#': '#178600', HTML: '#e34c26', CSS: '#563d7c', C: '#555', 'C++': '#f34b7d',
+  Rust: '#9a4f24', Go: '#00add8', PHP: '#4f5d95', Ruby: '#701516',
 };
 
 const emptyContext: RepositoryContext = { readme: '', files: {}, combinedText: '' };
+
+const capabilityHeadings = /feature|capabilit|what (?:it|this) does|functionality|highlights?|why .*stands out|gameplay|core systems?|filtering|auto-run/i;
+const workflowHeadings = /workflow|usage|how (?:it|this) works|getting started|quick start|run (?:the app|locally)|controls?|mode$|schedul|upload/i;
+const architectureHeadings = /architecture|project structure|directory structure|code structure|technology|tech stack|implementation|backend api|realtime socket api|github actions/i;
+const engineeringHeadings = /security|privacy|test|deploy|performance|configuration|environment|troubleshoot|accessibility|legal|data|storage|caching|metadata|limitations?|browser support|content security|schedul|upload/i;
 
 export function repositoryDisplayName(name: string) {
   return name
@@ -52,7 +78,8 @@ export function repositoryDisplayName(name: string) {
     .replace(/[-_]+/g, ' ')
     .replace(/\b\w/g, character => character.toUpperCase())
     .replace(/\bApi\b/g, 'API')
-    .replace(/\bUi\b/g, 'UI');
+    .replace(/\bUi\b/g, 'UI')
+    .replace(/\bUrl\b/g, 'URL');
 }
 
 function cleanHomepage(homepage: string | null) {
@@ -68,63 +95,167 @@ function plainText(value: string) {
   return value
     .replace(/\u2014/g, '-')
     .replace(/<!--[^]*?-->/g, ' ')
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-    .replace(/[`*_>#|]/g, ' ')
+    .replace(/<br\s*\/?\s*>/gi, ' ')
     .replace(/<[^>]+>/g, ' ')
+    .replace(/[`*_>#|~]/g, ' ')
     .replace(/\s+/g, ' ')
+    .replace(/\s+([,.;:!?])/g, '$1')
+    .replace(/([([])\s+/g, '$1')
     .trim();
 }
 
-function readmeIntro(readme: string) {
-  const body = readme
-    .replace(/<!--[^]*?-->/g, '')
-    .split(/\r?\n/)
-    .filter(line => !/^\s*(#|!\[|\[!\[|<img|<div|<p align|[-*]\s|```)/i.test(line))
-    .join('\n');
-  return body.split(/\n\s*\n/).map(plainText).find(value => value.length >= 45)?.slice(0, 520);
+function sentence(value: string, maximum = 560) {
+  const clean = plainText(value);
+  if (clean.length <= maximum) return clean;
+  const shortened = clean.slice(0, maximum);
+  const boundary = Math.max(shortened.lastIndexOf('. '), shortened.lastIndexOf('; '), shortened.lastIndexOf(', '));
+  return `${shortened.slice(0, boundary > maximum * .6 ? boundary + 1 : maximum).trim()}...`;
+}
+
+function parseReadme(readme: string) {
+  const source = readme.replace(/<!--[^]*?-->/g, '');
+  const lines = source.split(/\r?\n/);
+  const preamble: string[] = [];
+  const sections: MarkdownSection[] = [];
+  let parent: MarkdownSection | undefined;
+  let current: MarkdownSection | undefined;
+  let inCode = false;
+
+  for (const line of lines) {
+    if (/^\s*```/.test(line)) {
+      inCode = !inCode;
+      (current?.lines || parent?.lines || preamble).push(line);
+      continue;
+    }
+    const heading = !inCode ? line.match(/^\s*(#{2,4})\s+(.+?)\s*#*\s*$/) : null;
+    if (heading) {
+      const section: MarkdownSection = { title: plainText(heading[2]), level: heading[1].length, lines: [], children: [] };
+      if (section.level === 2 || !parent) {
+        sections.push(section);
+        parent = section;
+      } else {
+        parent.children.push(section);
+      }
+      current = section;
+      continue;
+    }
+    (current?.lines || preamble).push(line);
+  }
+  return { preamble, sections };
+}
+
+function withoutCode(lines: string[]) {
+  let inCode = false;
+  return lines.filter(line => {
+    if (/^\s*```/.test(line)) { inCode = !inCode; return false; }
+    return !inCode;
+  });
+}
+
+function paragraphs(lines: string[]) {
+  const values: string[] = [];
+  let paragraph: string[] = [];
+  const flush = () => {
+    const value = sentence(paragraph.join(' '));
+    if (value.length >= 28 && !/^https?:\/\//i.test(value)) values.push(value);
+    paragraph = [];
+  };
+  for (const line of withoutCode(lines)) {
+    if (!line.trim()) { flush(); continue; }
+    if (/^\s*#/.test(line) || /^\s*(?:[-*+] |\d+[.)] )/.test(line) || /^\s*\|/.test(line) || /^\s*[-:| ]{3,}\s*$/.test(line) || /^\s*!\[/.test(line)) {
+      flush();
+      continue;
+    }
+    paragraph.push(line);
+  }
+  flush();
+  return [...new Set(values)];
+}
+
+function listItems(lines: string[], limit = 10) {
+  const items: string[] = [];
+  for (const line of withoutCode(lines)) {
+    const match = line.match(/^\s*(?:[-*+] |\d+[.)]\s+)(?:\[[ xX]\]\s*)?(.+)$/);
+    if (!match) continue;
+    const value = sentence(match[1], 320).replace(/[.;\s]+$/, '');
+    if (value.length >= 3 && !items.some(item => item.toLowerCase() === value.toLowerCase())) items.push(value);
+  }
+  return items.slice(0, limit);
+}
+
+function tableItems(lines: string[], limit = 8) {
+  const rows = lines.filter(line => /^\s*\|.+\|\s*$/.test(line));
+  if (rows.length < 3) return [];
+  const cells = rows.map(row => row.split('|').slice(1, -1).map(plainText));
+  return cells.slice(2).map(row => row.filter(Boolean).join(' - ')).filter(value => value.length > 4).slice(0, limit);
+}
+
+function codeBlocks(lines: string[]) {
+  const blocks: string[][] = [];
+  let active: string[] | undefined;
+  for (const line of lines) {
+    if (/^\s*```/.test(line)) {
+      if (active) { blocks.push(active); active = undefined; } else active = [];
+      continue;
+    }
+    if (active) active.push(line);
+  }
+  return blocks;
+}
+
+function sectionIntroduction(section: MarkdownSection) {
+  return paragraphs(section.lines)[0];
+}
+
+function sectionItems(section: MarkdownSection, limit = 10) {
+  return [...listItems(section.lines, limit), ...tableItems(section.lines, limit)]
+    .filter((item, index, all) => all.findIndex(candidate => candidate.toLowerCase() === item.toLowerCase()) === index)
+    .slice(0, limit);
+}
+
+function sectionToGroups(section: MarkdownSection, fallbackTitle?: string): CaseStudyGroup[] {
+  const groups: CaseStudyGroup[] = [];
+  const directItems = sectionItems(section);
+  const introduction = sectionIntroduction(section);
+  if (section.children.length > 7) {
+    const childItems = section.children.map(child => {
+      const detail = sectionIntroduction(child) || sectionItems(child, 2).join('. ');
+      return detail ? `${child.title} - ${detail}` : child.title;
+    });
+    return [{ title: fallbackTitle || section.title, introduction, items: [...directItems, ...childItems].slice(0, 14) }];
+  }
+  if (directItems.length || introduction) {
+    groups.push({ title: fallbackTitle || section.title, introduction, items: directItems });
+  }
+  for (const child of section.children) {
+    const items = sectionItems(child);
+    const childIntroduction = sectionIntroduction(child);
+    if (items.length || childIntroduction) groups.push({ title: child.title, introduction: childIntroduction, items });
+  }
+  return groups;
+}
+
+function findSections(sections: MarkdownSection[], pattern: RegExp) {
+  return sections.filter(section => pattern.test(section.title));
+}
+
+function groupsFor(sections: MarkdownSection[], pattern: RegExp, maximum: number) {
+  return findSections(sections, pattern).flatMap(section => sectionToGroups(section)).slice(0, maximum);
 }
 
 function readmeTitle(readme: string) {
   const heading = readme.split(/\r?\n/).find(line => /^#\s+\S/.test(line));
   const value = heading ? plainText(heading.replace(/^#\s+/, '')) : '';
-  return value.length >= 2 && value.length <= 90 ? value : undefined;
-}
-
-function findSection(readme: string, names: string[]) {
-  const lines = readme.split(/\r?\n/);
-  const heading = lines.findIndex(line => {
-    const match = line.match(/^#{1,4}\s+(.+?)\s*#*$/);
-    return Boolean(match && names.some(name => match[1].toLowerCase().includes(name)));
-  });
-  if (heading < 0) return [];
-  const content: string[] = [];
-  for (const line of lines.slice(heading + 1)) {
-    if (/^#{1,4}\s+/.test(line)) break;
-    content.push(line);
-  }
-  return content;
-}
-
-function sectionItems(readme: string, names: string[]) {
-  const items = findSection(readme, names)
-    .map(line => line.match(/^\s*[-*+]\s+(.*)$/)?.[1])
-    .filter((value): value is string => Boolean(value))
-    .map(plainText)
-    .filter(value => value.length > 12);
-  return [...new Set(items)].slice(0, 4).map(value => value.slice(0, 260));
-}
-
-function sectionParagraph(readme: string, names: string[]) {
-  const value = plainText(findSection(readme, names).join(' '));
-  return value.length > 25 ? value.slice(0, 520) : undefined;
+  return value.length >= 2 && value.length <= 100 ? value : undefined;
 }
 
 function readmeScreenshots(readme: string, repo: GitHubRepo): CaseStudyScreenshot[] {
   const screenshots: CaseStudyScreenshot[] = [];
   const pattern = /!\[([^\]]*)\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/g;
   let match: RegExpExecArray | null;
-  while ((match = pattern.exec(readme)) && screenshots.length < 4) {
+  while ((match = pattern.exec(readme)) && screenshots.length < 6) {
     const alt = plainText(match[1]) || 'Project screenshot';
     const source = match[2].replace(/^<|>$/g, '');
     if (/badge|shield|license|coverage|build status|logo|icon/i.test(`${alt} ${source}`)) continue;
@@ -139,260 +270,153 @@ function readmeScreenshots(readme: string, repo: GitHubRepo): CaseStudyScreensho
   return screenshots;
 }
 
-function detectedDependencies(context: RepositoryContext) {
+function packageDetails(context: RepositoryContext) {
   const manifest = context.files['package.json'];
-  if (!manifest) return [];
+  if (!manifest) return { dependencies: [] as string[], scripts: [] as Array<{ name: string; command: string }> };
   try {
-    const parsed = JSON.parse(manifest) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
-    return [...new Set([...Object.keys(parsed.dependencies || {}), ...Object.keys(parsed.devDependencies || {})])].slice(0, 12);
-  } catch { return []; }
+    const parsed = JSON.parse(manifest) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+      scripts?: Record<string, string>;
+    };
+    const dependencies = [...new Set([...Object.keys(parsed.dependencies || {}), ...Object.keys(parsed.devDependencies || {})])].slice(0, 24);
+    const scripts = Object.entries(parsed.scripts || {}).slice(0, 10).map(([name, command]) => ({ name, command }));
+    return { dependencies, scripts };
+  } catch { return { dependencies: [], scripts: [] }; }
 }
 
-function generateChallenges(
-  repo: GitHubRepo,
-  repositoryContext: RepositoryContext,
-  relevantSkills: CaseStudySkill[],
-  documentedChallenges: string[],
-) {
-  const challenges: Array<{ title: string; detail: string }> = [];
-  const context = repositoryContext.combinedText.toLowerCase();
-  const skills = new Set(relevantSkills.map(skill => skill.name));
-  const approach = sectionParagraph(repositoryContext.readme, ['solution', 'approach', 'architecture', 'implementation', 'how it works']);
-  const add = (title: string, detail: string) => {
-    if (!challenges.some(item => item.title === title)) challenges.push({ title, detail });
-  };
-
-  documentedChallenges.slice(0, 3).forEach((detail, index) => {
-    const resolution = approach
-      ? `I addressed this through the documented project approach: ${approach.slice(0, 280)}`
-      : `I addressed this within the repository's ${repo.language || 'software'} implementation and documented project structure.`;
-    add(`Documented challenge ${index + 1}`, `${detail.replace(/[.\s]+$/, '')}. ${resolution}`);
-  });
-
-  if (/socket\.io|websocket|multiplayer|real[ -]?time/.test(context)) {
-    add('Synchronising real-time state', `Real-time clients can drift apart or miss important updates. I addressed this with the event-driven client and server structure detected in the repository, keeping shared state changes within one coordinated flow.`);
+function projectStructureGroups(sections: MarkdownSection[]) {
+  const groups: CaseStudyGroup[] = [];
+  for (const section of findSections(sections, /project structure|directory structure|code structure/i)) {
+    const items = codeBlocks(section.lines).flatMap(block => block.map(line => {
+      const match = line.trim().match(/^([^\s#][^\s]*?)\s{2,}(.+)$/);
+      return match ? `${match[1]} - ${plainText(match[2])}` : '';
+    })).filter(Boolean).slice(0, 12);
+    if (items.length) groups.push({ title: section.title, introduction: sectionIntroduction(section), items });
   }
-  if (/ffmpeg|video processing|media processing|caption|audio pipeline/.test(context)) {
-    add('Coordinating the media pipeline', `Media inputs, timing and generated outputs need to remain aligned across several processing stages. I addressed this with the detected media tooling and a staged workflow that keeps conversion, composition and output responsibilities separate.`);
-  }
-  if (skills.has('WebGL / Three.js') || /procedural (world|terrain|generation)/.test(context)) {
-    add('Keeping interactive graphics responsive', `Rendering and updating an interactive scene in the browser can quickly become expensive. I addressed this with the detected WebGL or Three.js stack and a focused rendering pipeline built around the project's interactive requirements.`);
-  }
-  if (skills.has('Computer Vision')) {
-    add('Handling variable visual input', `Computer-vision input changes with lighting, framing and movement. I addressed this through the tracking and image-processing tools documented in the repository, keeping visual interpretation separate from application behaviour.`);
-  }
-  if (skills.has('React')) {
-    add('Structuring a growing interface', `A feature-rich interface can become difficult to reason about as state and interactions expand. I addressed this with the detected React component structure, splitting the experience into reusable interface and state boundaries.`);
-  }
-  if (skills.has('Node.js') || skills.has('REST APIs') || skills.has('SQL')) {
-    const detected = ['Node.js', 'REST APIs', 'SQL'].filter(skill => skills.has(skill)).join(', ');
-    add('Keeping service and data boundaries consistent', `Requests, application logic and persisted data need predictable boundaries. I addressed this through the repository's detected ${detected} stack, separating those responsibilities within the implementation.`);
-  }
-  if (Object.keys(repositoryContext.files).length > 0) {
-    add('Keeping the development setup reproducible', `Dependencies and build requirements can vary between environments. I addressed this with the checked-in ${Object.keys(repositoryContext.files).join(', ')} context detected in the repository.`);
-  }
-  add('Keeping the implementation maintainable', `The project is built primarily with ${repo.language || 'its documented software stack'}. I addressed its technical scope by keeping the implementation, dependencies and supporting documentation together in a version-controlled repository.`);
-
-  const contextScore = documentedChallenges.length * 2
-    + relevantSkills.filter(skill => !['Git', 'GitHub'].includes(skill.name)).length
-    + Object.keys(repositoryContext.files).length;
-  const target = Math.min(3, Math.max(documentedChallenges.length, contextScore >= 7 ? 3 : contextScore >= 3 ? 2 : 1));
-  return challenges.slice(0, target);
+  return groups;
 }
 
-function generateOutcomes(
-  repo: GitHubRepo,
-  repositoryContext: RepositoryContext,
-  relevantSkills: CaseStudySkill[],
-  documentedOutcomes: string[],
-  description: string | undefined,
-  liveUrl: string | undefined,
-) {
-  const outcomes: string[] = [];
-  const context = repositoryContext.combinedText.toLowerCase();
-  const skills = new Set(relevantSkills.map(skill => skill.name));
-  const add = (outcome: string) => {
-    const cleanOutcome = plainText(outcome).replace(/[.\s]+$/, '');
-    if (cleanOutcome && !outcomes.some(item => item.toLowerCase() === cleanOutcome.toLowerCase())) {
-      outcomes.push(`${cleanOutcome}.`);
-    }
+function inferStack(repo: GitHubRepo, relevantSkills: CaseStudySkill[], dependencies: string[]) {
+  const skillNames = relevantSkills.filter(skill => !['Git', 'GitHub'].includes(skill.name)).map(skill => skill.name);
+  const recognisableDependencies: Record<string, string> = {
+    next: 'Next.js', react: 'React', vite: 'Vite', express: 'Express', 'socket.io': 'Socket.IO',
+    three: 'Three.js', prisma: 'Prisma', '@prisma/client': 'Prisma', pg: 'PostgreSQL',
+    typescript: 'TypeScript', tailwindcss: 'Tailwind CSS', ffmpeg: 'FFmpeg', fluent_ffmpeg: 'FFmpeg',
+    'react-router-dom': 'React Router', vitest: 'Vitest', jest: 'Jest', playwright: 'Playwright',
   };
-
-  documentedOutcomes.forEach(add);
-
-  if (/socket\.io|websocket|multiplayer|real[ -]?time/.test(context)) {
-    add('Built a coordinated real-time experience that keeps shared client and server interactions within one event-driven flow');
-  }
-  if (/ffmpeg|video processing|media processing|caption|audio pipeline/.test(context)) {
-    add('Combined media input, processing and output stages into a single usable workflow');
-  }
-  if (skills.has('WebGL / Three.js') || /procedural (world|terrain|generation)/.test(context)) {
-    add('Turned procedural or spatial data into an interactive browser experience rather than a static demonstration');
-  }
-  if (skills.has('Computer Vision')) {
-    add('Connected visual input and tracking data to meaningful application behaviour');
-  }
-  if (skills.has('React')) {
-    add('Delivered the interface through reusable components that can support continued feature growth');
-  }
-  if (skills.has('Node.js') || skills.has('REST APIs') || skills.has('SQL')) {
-    const capabilities = [
-      skills.has('REST APIs') ? 'API communication' : '',
-      skills.has('Node.js') ? 'server-side logic' : '',
-      skills.has('SQL') ? 'persistent data' : '',
-    ].filter(Boolean);
-    add(`Connected ${capabilities.join(', ').replace(/, ([^,]*)$/, ' and $1')} into a working application flow`);
-  }
-  if (liveUrl) {
-    add('Made the project available as a public deployment so the finished experience can be evaluated directly');
-  }
-  if (description && outcomes.length < 2) {
-    add(`Delivered the repository's stated goal: ${description}`);
-  }
-  if (outcomes.length < 2 && repo.language) {
-    add(`Produced a working ${repo.language} implementation with its source, dependencies and project history kept together in version control`);
-  }
-  if (!outcomes.length) {
-    add('Produced a working implementation that can be inspected and developed further through the public repository');
-  }
-
-  const contextScore = documentedOutcomes.length * 2
-    + relevantSkills.filter(skill => !['Git', 'GitHub'].includes(skill.name)).length
-    + Object.keys(repositoryContext.files).length
-    + (liveUrl ? 1 : 0);
-  const target = contextScore >= 7 ? 3 : contextScore >= 3 ? 2 : 1;
-  return outcomes.slice(0, Math.max(Math.min(documentedOutcomes.length, 3), target));
+  const dependencyLabels = dependencies.map(name => recognisableDependencies[name.toLowerCase()]).filter((value): value is string => Boolean(value));
+  return [...new Set([repo.language, ...dependencyLabels, ...skillNames, ...(repo.topics || []).map(repositoryDisplayName)].filter((value): value is string => Boolean(value)))].slice(0, 14);
 }
 
-function generateNextSteps(
-  repo: GitHubRepo,
-  repositoryContext: RepositoryContext,
-  relevantSkills: CaseStudySkill[],
-  documentedNextSteps: string[],
-  liveUrl: string | undefined,
-) {
-  const nextSteps: string[] = [];
-  const context = repositoryContext.combinedText.toLowerCase();
-  const skills = new Set(relevantSkills.map(skill => skill.name));
-  const files = new Set(Object.keys(repositoryContext.files));
-  const add = (nextStep: string) => {
-    const cleanNextStep = plainText(nextStep).replace(/[.\s]+$/, '');
-    if (cleanNextStep && !nextSteps.some(item => item.toLowerCase() === cleanNextStep.toLowerCase())) {
-      nextSteps.push(`${cleanNextStep}.`);
-    }
+function overviewCards(parsed: ReturnType<typeof parseReadme>, repo: GitHubRepo) {
+  const cards: Array<{ title: string; detail: string }> = [];
+  const add = (title: string, detail?: string) => {
+    if (detail && detail.length > 25 && !cards.some(card => card.title.toLowerCase() === title.toLowerCase())) cards.push({ title, detail: sentence(detail, 520) });
   };
+  const overviewSection = parsed.sections.find(section => /^(overview|about|introduction|purpose)$/i.test(section.title));
+  add('The project', paragraphs(parsed.preamble)[0] || (overviewSection ? sectionIntroduction(overviewSection) : undefined) || repo.description || undefined);
 
-  documentedNextSteps.forEach(add);
+  const notablePatterns = [
+    /why .*stands out|motivation|problem/i,
+    /architecture|how (?:it|this) works/i,
+    /privacy|security|legal/i,
+    /performance|reliability|quality/i,
+  ];
+  for (const pattern of notablePatterns) {
+    const section = parsed.sections.find(candidate => pattern.test(candidate.title));
+    if (!section) continue;
+    const detail = sectionIntroduction(section) || sectionItems(section, 3).join('. ');
+    add(section.title, detail);
+  }
+  return cards.slice(0, 4);
+}
 
-  if (/socket\.io|websocket|multiplayer|real[ -]?time/.test(context)) {
-    add('Add reconnect, recovery and concurrent-user tests to verify state stays consistent when connections fail or activity increases');
-  }
-  if (/ffmpeg|video processing|media processing|caption|audio pipeline/.test(context)) {
-    add('Move long-running media work into resilient background jobs with progress reporting, retries and resource limits');
-  }
-  if (skills.has('WebGL / Three.js') || /procedural (world|terrain|generation)/.test(context)) {
-    add('Profile frame time and memory use, then introduce adaptive detail, object reuse or worker-based generation where the measurements show a bottleneck');
-  }
-  if (skills.has('Computer Vision')) {
-    add('Test a wider range of lighting, camera and movement conditions, then tune confidence thresholds and fallback behaviour around the results');
-  }
-  if (skills.has('React')) {
-    add('Strengthen the interface with accessibility checks, interaction tests and targeted render or bundle profiling');
-  }
-  if (skills.has('REST APIs') || skills.has('Node.js')) {
-    add('Add integration tests, request validation and structured diagnostics around the main service boundaries');
-  }
-  if (skills.has('SQL')) {
-    add('Formalise database migrations and profile the most important queries before adding indexes, backup and recovery checks');
-  }
-  if (liveUrl) {
-    add('Add deployment smoke tests and lightweight performance and error monitoring so regressions are visible after release');
-  }
-  if (files.has('Dockerfile') || files.has('docker-compose.yml') || files.has('docker-compose.yaml')) {
-    add('Run the container build in CI and verify local, test and deployed environments use the same reproducible configuration');
-  }
-  if (!nextSteps.length && repo.language) {
-    add(`Add automated tests around the core ${repo.language} workflows, then profile the paths most likely to limit reliability or performance`);
-  }
-  if (!nextSteps.length) {
-    add('Add automated coverage for the main user journey and use the results to prioritise the next reliability and usability improvements');
-  }
+function fallbackCapabilities(parsed: ReturnType<typeof parseReadme>) {
+  const preambleItems = listItems(parsed.preamble, 12);
+  if (preambleItems.length >= 2) return [{ title: 'What it does', items: preambleItems }];
+  const firstRichSection = parsed.sections.find(section => sectionItems(section).length >= 3 && !workflowHeadings.test(section.title) && !engineeringHeadings.test(section.title));
+  return firstRichSection ? sectionToGroups(firstRichSection) : [];
+}
 
-  const contextScore = documentedNextSteps.length * 2
-    + relevantSkills.filter(skill => !['Git', 'GitHub'].includes(skill.name)).length
-    + Object.keys(repositoryContext.files).length
-    + (liveUrl ? 1 : 0);
-  const target = contextScore >= 7 ? 3 : contextScore >= 3 ? 2 : 1;
-  return nextSteps.slice(0, Math.max(Math.min(documentedNextSteps.length, 3), target));
+function fallbackWorkflow(parsed: ReturnType<typeof parseReadme>) {
+  for (const section of parsed.sections) {
+    const numbered = listItems(section.lines).filter(Boolean);
+    if (numbered.length >= 3 && /workflow|usage|start|run|how/i.test(section.title)) return sectionToGroups(section);
+  }
+  return [];
+}
+
+function engineeringGroups(sections: MarkdownSection[]) {
+  const groups = groupsFor(sections, engineeringHeadings, 12);
+  return groups.map(group => ({ ...group, items: group.items.slice(0, 8) }));
 }
 
 export function createGeneratedCaseStudy(repo: GitHubRepo, repositoryContext: RepositoryContext = emptyContext): CaseStudy {
-  const { readme, files, combinedText } = repositoryContext;
+  const { readme, combinedText } = repositoryContext;
+  const parsed = parseReadme(readme);
   const title = readmeTitle(readme) || repositoryDisplayName(repo.name);
   const liveUrl = cleanHomepage(repo.homepage);
-  const description = repo.description ? plainText(repo.description) : undefined;
-  const introduction = readmeIntro(readme);
-  const topics = [...new Set(repo.topics || [])];
-  const dependencies = detectedDependencies(repositoryContext);
+  const introParagraphs = paragraphs(parsed.preamble);
+  const description = repo.description ? sentence(repo.description) : undefined;
+  const summary = introParagraphs.slice(0, 2).join(' ') || description || 'A public software project maintained by Alistair Bishop.';
+  const firstSentence = summary.match(/^.*?[.!?](?:\s|$)/)?.[0]?.trim();
   const relevantSkills = allSkills
     .map(skill => ({ name: skill.name, level: skill.level, reasons: matchSkillToRepository(skill, repo, combinedText) }))
     .filter(skill => skill.reasons.length);
-  const skillNames = relevantSkills.filter(skill => !['Git', 'GitHub'].includes(skill.name)).map(skill => skill.name);
-  const stack = [...new Set([repo.language, ...skillNames, ...topics.map(repositoryDisplayName)].filter((value): value is string => Boolean(value)))].slice(0, 12);
-  const documentedFeatures = sectionItems(readme, ['feature', 'highlight', 'capabilit', 'what it does']);
-  const documentedChallenges = sectionItems(readme, ['challenge', 'trade-off', 'tradeoff', 'limitation']);
-  const documentedOutcomes = sectionItems(readme, ['result', 'outcome', 'impact', 'achievement']);
-  const documentedNextSteps = sectionItems(readme, ['roadmap', 'next step', 'future', 'todo']);
+  const { dependencies, scripts } = packageDetails(repositoryContext);
+  const stack = inferStack(repo, relevantSkills, dependencies);
   const screenshots = readmeScreenshots(readme, repo);
-  const problem = sectionParagraph(readme, ['problem', 'motivation', 'why'])
-    || (description
-      ? `This project addresses the need described in its repository: ${description}`
-      : 'The repository does not yet state a specific problem. Adding a Problem or Motivation section to its README will populate this section automatically.');
-  const solution = sectionParagraph(readme, ['solution', 'overview', 'about'])
-    || introduction
-    || (description
-      ? `The implementation provides ${description.charAt(0).toLowerCase()}${description.slice(1)}`
-      : `${title} is a public software project whose implementation is documented by its source and repository history.`);
-  const highlights = documentedFeatures.length ? documentedFeatures : [
-    ...(repo.language ? [`Primarily implemented in ${repo.language}.`] : []),
-    ...(skillNames.length ? [`Demonstrates ${skillNames.slice(0, 5).join(', ')}.`] : []),
-    ...(topics.length ? [`Covers ${topics.slice(0, 4).map(repositoryDisplayName).join(', ')}.`] : []),
-    ...(liveUrl ? ['Includes a public live deployment linked from GitHub.'] : ['Source code and project history are publicly available on GitHub.']),
+  const openingCapabilities = listItems(parsed.preamble, 12);
+  const detectedCapabilities = groupsFor(parsed.sections, capabilityHeadings, 10);
+  const capabilities = openingCapabilities.length >= 2
+    ? [{ title: 'What it does', items: openingCapabilities }, ...detectedCapabilities].slice(0, 10)
+    : detectedCapabilities.length ? detectedCapabilities : fallbackCapabilities(parsed);
+  const detectedWorkflows = groupsFor(parsed.sections, workflowHeadings, 7);
+  const workflows = detectedWorkflows.length ? detectedWorkflows : fallbackWorkflow(parsed);
+  const architecture = [
+    ...projectStructureGroups(parsed.sections),
+    ...groupsFor(parsed.sections, architectureHeadings, 8).filter(group => !/project structure|directory structure|code structure/i.test(group.title)),
+  ].slice(0, 9);
+  const engineering = engineeringGroups(parsed.sections);
+  const facts: CaseStudyFact[] = [
+    { label: 'Role', value: repo.fork ? 'Fork maintainer / contributor' : 'Creator & developer' },
+    { label: 'Project state', value: liveUrl ? 'Deployed & publicly accessible' : 'Source available on GitHub' },
+    ...(repo.language ? [{ label: 'Primary language', value: repo.language }] : []),
+    { label: 'Last updated', value: new Date(repo.updated_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long' }) },
   ];
-  const contextFiles = Object.keys(files);
-  const technical = [
-    { title: 'Primary implementation', detail: repo.language ? `GitHub identifies ${repo.language} as the repository’s primary language.` : 'GitHub does not currently report a primary language for this repository.' },
-    { title: 'Detected project context', detail: contextFiles.length ? `The generator inspected the README and ${contextFiles.join(', ')}.` : readme ? 'The generator inspected the repository README and GitHub metadata.' : 'Only GitHub metadata is currently available; adding a README will enrich this analysis.' },
-    ...(dependencies.length ? [{ title: 'Detected dependencies', detail: dependencies.join(', ') }] : []),
-    { title: 'Delivery', detail: liveUrl ? `A public deployment is available at ${liveUrl}.` : 'The source, commit history and releases are available through the public repository.' },
-  ];
-  const challenges = generateChallenges(repo, repositoryContext, relevantSkills, documentedChallenges);
-  const results = generateOutcomes(repo, repositoryContext, relevantSkills, documentedOutcomes, description, liveUrl);
-  const nextSteps = generateNextSteps(repo, repositoryContext, relevantSkills, documentedNextSteps, liveUrl);
+  const sourceParts = [
+    readme ? `${parsed.sections.length} README sections` : 'GitHub metadata',
+    Object.keys(repositoryContext.files).length ? Object.keys(repositoryContext.files).join(', ') : '',
+  ].filter(Boolean);
 
   return {
     id: `github-${repo.id}`,
     repository: repo.name,
     title,
-    tagline: description || introduction?.split(/(?<=[.!?])\s/)[0] || `${repo.language || 'Software'} project from ${repo.full_name}.`,
-    summary: introduction || description || 'An automatically documented public repository maintained by Alistair Bishop.',
-    problem,
-    solution,
-    role: repo.fork ? 'Fork maintainer / contributor' : 'Repository owner and developer',
-    status: liveUrl ? 'Live deployment' : 'Public GitHub repository',
+    tagline: description || firstSentence || `${repo.language || 'Software'} project from ${repo.full_name}.`,
+    summary: sentence(summary, 900),
+    role: repo.fork ? 'Fork maintainer / contributor' : 'Creator & developer',
+    status: liveUrl ? 'Live' : 'Open source',
     stack: stack.length ? stack : ['See repository'],
     relevantSkills,
-    highlights,
-    technical,
-    challenges,
-    results,
-    nextSteps,
+    facts,
+    overview: overviewCards(parsed, repo),
+    capabilities,
+    workflows,
+    architecture,
+    engineering,
+    dependencies,
+    scripts,
     liveUrl,
     repositoryUrl: repo.html_url,
     accent: languageAccents[repo.language || ''] || '#3d6ea8',
     screenshots: screenshots.length ? screenshots : undefined,
     generated: true,
     sourceUpdatedAt: repo.updated_at,
+    sourceNote: readme
+      ? `Built from ${sourceParts.join(' and ')}. Every claim shown here is traceable to the repository.`
+      : 'README content is unavailable, so this view currently uses verified GitHub metadata only.',
   };
 }
 
